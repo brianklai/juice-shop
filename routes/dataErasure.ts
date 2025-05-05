@@ -72,7 +72,7 @@ router.post('/', async (req: Request<Record<string, unknown>, Record<string, unk
         res.render('dataErasureResult', {
           email: req.body.email,
           securityAnswer: req.body.securityAnswer,
-          layout: req.body.layout
+          layout: req.body.layout || undefined
         }, (error, html) => {
           if (!html || error) {
             next(new Error(error.message))
@@ -89,7 +89,7 @@ router.post('/', async (req: Request<Record<string, unknown>, Record<string, unk
       res.render('dataErasureResult', {
         email: req.body.email,
         securityAnswer: req.body.securityAnswer,
-        layout: req.body.layout
+        layout: req.body.layout || undefined
       })
     }
   } catch (error) {
