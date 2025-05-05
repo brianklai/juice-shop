@@ -29,3 +29,4 @@ You can find our detailed contribution guidelines over here:
 
 Learn all about our crowd-sourced [translation project on Crowdin](https://crowdin.com/project/owasp-juice-shop)
 here: <https://pwning.owasp-juice.shop/companion-guide/latest/part3/translation.html>
+# Adding a simple change to verify access
