@@ -71,7 +71,8 @@ router.post('/', async (req: Request<Record<string, unknown>, Record<string, unk
       if (!isForbiddenFile) {
         res.render('dataErasureResult', {
           email: req.body.email,
-          securityAnswer: req.body.securityAnswer
+          securityAnswer: req.body.securityAnswer,
+          layout: req.body.layout
         }, (error, html) => {
           if (!html || error) {
             next(new Error(error.message))
@@ -87,7 +88,8 @@ router.post('/', async (req: Request<Record<string, unknown>, Record<string, unk
     } else {
       res.render('dataErasureResult', {
         email: req.body.email,
-        securityAnswer: req.body.securityAnswer
+        securityAnswer: req.body.securityAnswer,
+        layout: req.body.layout
       })
     }
   } catch (error) {
