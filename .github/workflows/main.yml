@@ -1,0 +1,231 @@
+name: "CodeQL Analysis with Processing"
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  analyze:
+    name: Analyze and Process
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      issues: write  # Needed if creating issues from findings
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+          config: |
+            paths-ignore:
+              - 'data/static/codefixes'
+      
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+      
+      - name: Perform CodeQL Analysis
+        id: codeql-analyze
+        uses: github/codeql-action/analyze@v3
+        with:
+          output: sarif-results
+          upload: true  # Upload to GitHub Security tab
+      
+      - name: Install jq
+        run: sudo apt-get install -y jq
+      
+      - name: Process CodeQL Results
+        run: |
+          mkdir -p processed-results
+          
+          # List all SARIF files
+          echo "Processing SARIF files:"
+          find sarif-results -type f -name "*.sarif" -o -name "*.json" | tee sarif-files.txt
+          
+          # Process each SARIF file
+          while IFS= read -r sarif_file; do
+            echo "Processing $sarif_file"
+            base_name=$(basename "$sarif_file" .sarif)
+            
+            # Extract findings into JSON format
+            jq -c '.runs[0].results[] | {
+              rule_id: .ruleId,
+              rule_name: (.rule.name // .ruleId),
+              severity: (.properties.problem.severity // "unknown"),
+              description: .message.text,
+              location: .locations[0].physicalLocation.artifactLocation.uri,
+              line: .locations[0].physicalLocation.region.startLine,
+              code_snippet: .locations[0].physicalLocation.region.snippet.text,
+              help_url: (.rule.helpUri // "")
+            }' "$sarif_file" > "processed-results/${base_name}-findings.json"
+            
+            # Generate summary statistics
+            echo "Findings for $base_name:" > "processed-results/${base_name}-summary.txt"
+            echo "Critical issues: $(jq 'select(.severity == "critical")' "processed-results/${base_name}-findings.json" | wc -l)" >> "processed-results/${base_name}-summary.txt"
+            echo "High issues: $(jq 'select(.severity == "high")' "processed-results/${base_name}-findings.json" | wc -l)" >> "processed-results/${base_name}-summary.txt"
+            echo "Medium issues: $(jq 'select(.severity == "medium")' "processed-results/${base_name}-findings.json" | wc -l)" >> "processed-results/${base_name}-summary.txt"
+            echo "Low issues: $(jq 'select(.severity == "low")' "processed-results/${base_name}-findings.json" | wc -l)" >> "processed-results/${base_name}-summary.txt"
+            echo "Unknown severity: $(jq 'select(.severity == "unknown")' "processed-results/${base_name}-findings.json" | wc -l)" >> "processed-results/${base_name}-summary.txt"
+            echo "Total issues: $(cat "processed-results/${base_name}-findings.json" | wc -l)" >> "processed-results/${base_name}-summary.txt"
+          done < sarif-files.txt
+          
+          # Combine all findings into a single file
+          jq -s 'add' processed-results/*-findings.json > processed-results/all-findings.json || echo "No findings to combine"
+          
+          # Generate overall summary
+          echo "# Overall Summary" > processed-results/overall-summary.txt
+          echo "Critical issues: $(jq 'select(.severity == "critical")' processed-results/all-findings.json 2>/dev/null | wc -l)" >> processed-results/overall-summary.txt
+          echo "High issues: $(jq 'select(.severity == "high")' processed-results/all-findings.json 2>/dev/null | wc -l)" >> processed-results/overall-summary.txt
+          echo "Medium issues: $(jq 'select(.severity == "medium")' processed-results/all-findings.json 2>/dev/null | wc -l)" >> processed-results/overall-summary.txt
+          echo "Low issues: $(jq 'select(.severity == "low")' processed-results/all-findings.json 2>/dev/null | wc -l)" >> processed-results/overall-summary.txt
+          echo "Unknown severity: $(jq 'select(.severity == "unknown")' processed-results/all-findings.json 2>/dev/null | wc -l)" >> processed-results/overall-summary.txt
+          echo "Total issues: $(cat processed-results/all-findings.json 2>/dev/null | wc -l || echo 0)" >> processed-results/overall-summary.txt
+      
+      - name: Generate Markdown Report
+        run: |
+          mkdir -p reports
+          
+          # Create main report
+          cat > reports/codeql-report.md << 'EOL'
+          # CodeQL Analysis Results
+          
+          ## Summary
+          
+          EOL
+          
+          cat processed-results/overall-summary.txt >> reports/codeql-report.md
+          
+          echo -e "\n## Findings by Severity\n" >> reports/codeql-report.md
+          
+          # Critical findings
+          echo -e "### Critical Findings\n" >> reports/codeql-report.md
+          echo "| Rule ID | Location | Description |" >> reports/codeql-report.md
+          echo "|---------|----------|-------------|" >> reports/codeql-report.md
+          jq -r 'select(.severity == "critical") | "| [\(.rule_id)](\(.help_url)) | \(.location):\(.line) | \(.description) |"' processed-results/all-findings.json 2>/dev/null >> reports/codeql-report.md || echo "No critical findings" >> reports/codeql-report.md
+          
+          # High findings
+          echo -e "\n### High Severity Findings\n" >> reports/codeql-report.md
+          echo "| Rule ID | Location | Description |" >> reports/codeql-report.md
+          echo "|---------|----------|-------------|" >> reports/codeql-report.md
+          jq -r 'select(.severity == "high") | "| [\(.rule_id)](\(.help_url)) | \(.location):\(.line) | \(.description) |"' processed-results/all-findings.json 2>/dev/null >> reports/codeql-report.md || echo "No high severity findings" >> reports/codeql-report.md
+          
+          # Medium findings
+          echo -e "\n### Medium Severity Findings\n" >> reports/codeql-report.md
+          echo "| Rule ID | Location | Description |" >> reports/codeql-report.md
+          echo "|---------|----------|-------------|" >> reports/codeql-report.md
+          jq -r 'select(.severity == "medium") | "| [\(.rule_id)](\(.help_url)) | \(.location):\(.line) | \(.description) |"' processed-results/all-findings.json 2>/dev/null >> reports/codeql-report.md || echo "No medium severity findings" >> reports/codeql-report.md
+          
+          # Create JSON file for programmatic access
+          jq -c '.' processed-results/all-findings.json > reports/codeql-findings.json 2>/dev/null || echo "[]" > reports/codeql-findings.json
+      
+      - name: Upload Processed Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-findings
+          path: |
+            processed-results/
+            reports/
+            sarif-results/
+      
+      - name: Create GitHub Issue with Summary (Optional)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          # Only create issues for scheduled runs or manual triggers
+          CRITICAL_COUNT=$(jq 'select(.severity == "critical")' processed-results/all-findings.json 2>/dev/null | wc -l || echo 0)
+          HIGH_COUNT=$(jq 'select(.severity == "high")' processed-results/all-findings.json 2>/dev/null | wc -l || echo 0)
+          
+          if [ "$CRITICAL_COUNT" -gt 0 ] || [ "$HIGH_COUNT" -gt 0 ]; then
+            # Create issue description
+            cat > /tmp/ISSUE_DESCRIPTION.md << 'EOL'
+          # CodeQL Security Analysis Results
+          
+          ## Summary
+          
+          EOL
+            
+            cat processed-results/overall-summary.txt >> /tmp/ISSUE_DESCRIPTION.md
+            
+            echo -e "\n## Critical and High Severity Findings\n" >> /tmp/ISSUE_DESCRIPTION.md
+            
+            if [ "$CRITICAL_COUNT" -gt 0 ]; then
+              echo -e "### Critical Findings\n" >> /tmp/ISSUE_DESCRIPTION.md
+              echo "| Rule ID | Location | Description |" >> /tmp/ISSUE_DESCRIPTION.md
+              echo "|---------|----------|-------------|" >> /tmp/ISSUE_DESCRIPTION.md
+              jq -r 'select(.severity == "critical") | "| \(.rule_id) | \(.location):\(.line) | \(.description) |"' processed-results/all-findings.json >> /tmp/ISSUE_DESCRIPTION.md
+            fi
+            
+            if [ "$HIGH_COUNT" -gt 0 ]; then
+              echo -e "\n### High Severity Findings\n" >> /tmp/ISSUE_DESCRIPTION.md
+              echo "| Rule ID | Location | Description |" >> /tmp/ISSUE_DESCRIPTION.md
+              echo "|---------|----------|-------------|" >> /tmp/ISSUE_DESCRIPTION.md
+              jq -r 'select(.severity == "high") | "| \(.rule_id) | \(.location):\(.line) | \(.description) |"' processed-results/all-findings.json >> /tmp/ISSUE_DESCRIPTION.md
+            fi
+            
+            echo -e "\n## Details\n" >> /tmp/ISSUE_DESCRIPTION.md
+            echo "Full report available in workflow artifacts: [CodeQL Findings](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> /tmp/ISSUE_DESCRIPTION.md
+            
+            # Create the issue
+            gh issue create --repo "${{ github.repository }}" --title "CodeQL Security Analysis Results - $(date +"%Y-%m-%d")" --body-file=/tmp/ISSUE_DESCRIPTION.md --label "security,codeql"
+          else
+            echo "No critical or high severity issues found. Skipping issue creation."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Generate JSON for External Tools
+        run: |
+          # Create a simplified JSON format for external tools like Devin
+          jq -c '[.[] | {
+            id: .rule_id,
+            name: .rule_name,
+            severity: .severity,
+            description: .description,
+            file_path: .location,
+            line: .line,
+            help_url: .help_url
+          }]' processed-results/all-findings.json > reports/external-tool-format.json 2>/dev/null || echo "[]" > reports/external-tool-format.json
+          
+          # Create a summary JSON
+          jq -n --arg critical "$(jq 'select(.severity == "critical")' processed-results/all-findings.json 2>/dev/null | wc -l || echo 0)" \
+                --arg high "$(jq 'select(.severity == "high")' processed-results/all-findings.json 2>/dev/null | wc -l || echo 0)" \
+                --arg medium "$(jq 'select(.severity == "medium")' processed-results/all-findings.json 2>/dev/null | wc -l || echo 0)" \
+                --arg low "$(jq 'select(.severity == "low")' processed-results/all-findings.json 2>/dev/null | wc -l || echo 0)" \
+                --arg unknown "$(jq 'select(.severity == "unknown")' processed-results/all-findings.json 2>/dev/null | wc -l || echo 0)" \
+                --arg total "$(cat processed-results/all-findings.json 2>/dev/null | wc -l || echo 0)" \
+                --arg repo "${{ github.repository }}" \
+                --arg run_id "${{ github.run_id }}" \
+                --arg run_date "$(date -u +"%Y-%m-%d")" \
+                '{
+                  "summary": {
+                    "critical": $critical | tonumber,
+                    "high": $high | tonumber,
+                    "medium": $medium | tonumber,
+                    "low": $low | tonumber,
+                    "unknown": $unknown | tonumber,
+                    "total": $total | tonumber
+                  },
+                  "metadata": {
+                    "repository": $repo,
+                    "run_id": $run_id,
+                    "run_date": $run_date,
+                    "artifact_url": "https://github.com/" + $repo + "/actions/runs/" + $run_id
+                  }
+                }' > reports/summary.json
+      
+      - name: Upload JSON for External Tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-external-tool-data
+          path: |
+            reports/external-tool-format.json
+            reports/summary.json
