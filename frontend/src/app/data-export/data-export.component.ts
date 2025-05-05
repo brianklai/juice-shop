@@ -65,7 +65,13 @@ export class DataExportComponent implements OnInit {
       this.error = null
       this.confirmation = data.confirmation
       this.userData = data.userData
-      window.open('', '_blank', 'width=500')?.document.write(this.userData)
+      const newWindow = window.open('', '_blank', 'width=500')
+      if (newWindow) {
+        newWindow.document.write('<!DOCTYPE html><html><head><title>Data Export</title></head><body></body></html>')
+        const preElement = newWindow.document.createElement('pre')
+        preElement.textContent = this.userData // Use textContent to prevent XSS
+        newWindow.document.body.appendChild(preElement)
+      }
       this.lastSuccessfulTry = new Date()
       localStorage.setItem('lstdtxprt', JSON.stringify(this.lastSuccessfulTry))
       this.ngOnInit()
