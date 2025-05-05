@@ -68,27 +68,29 @@ export function searchProducts () {
       res.json(utils.queryResultToJson(products))
     }
     
-    if ((criteria.includes("'") || criteria.includes('"') || criteria.includes('\\')) && 
-        (utils.isChallengeEnabled(challenges.unionSqlInjectionChallenge) || utils.isChallengeEnabled(challenges.dbSchemaChallenge))) {
-      models.sequelize.query(`SELECT * FROM Products WHERE ((name LIKE '%${criteria}%' OR description LIKE '%${criteria}%') AND deletedAt IS NULL) ORDER BY name`) // vuln-code-snippet vuln-line unionSqlInjectionChallenge dbSchemaChallenge
-        .then(([products]: any) => {
-          processSearchResults(products, req, res, next);
-        }).catch((error: ErrorWithParent) => {
-          next(error.parent)
-        })
-    } else {
-      models.sequelize.query(
-        'SELECT * FROM Products WHERE ((name LIKE ? OR description LIKE ?) AND deletedAt IS NULL) ORDER BY name',
-        { 
-          replacements: [`%${criteria}%`, `%${criteria}%`],
-          type: 'SELECT' 
-        }
-      ).then((products: any) => {
-        processSearchResults(products, req, res, next);
-      }).catch((error: ErrorWithParent) => {
-        next(error.parent)
-      })
+    if (utils.isChallengeEnabled(challenges.unionSqlInjectionChallenge) || utils.isChallengeEnabled(challenges.dbSchemaChallenge)) {
+      if (criteria.includes("'") && (criteria.includes('UNION') || criteria.includes('union'))) {
+        models.sequelize.query(`SELECT * FROM Products WHERE ((name LIKE '%${criteria}%' OR description LIKE '%${criteria}%') AND deletedAt IS NULL) ORDER BY name`) // vuln-code-snippet vuln-line unionSqlInjectionChallenge dbSchemaChallenge
+          .then(([products]: any) => {
+            processSearchResults(products, req, res, next);
+          }).catch((error: ErrorWithParent) => {
+            next(error.parent)
+          })
+        return;
+      }
     }
+    
+    models.sequelize.query(
+      'SELECT * FROM Products WHERE ((name LIKE ? OR description LIKE ?) AND deletedAt IS NULL) ORDER BY name',
+      { 
+        replacements: [`%${criteria}%`, `%${criteria}%`],
+        type: 'SELECT' 
+      }
+    ).then((products: any) => {
+      processSearchResults(products, req, res, next);
+    }).catch((error: ErrorWithParent) => {
+      next(error.parent)
+    })
   }
 }
 // vuln-code-snippet end unionSqlInjectionChallenge dbSchemaChallenge
