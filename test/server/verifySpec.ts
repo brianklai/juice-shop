@@ -258,7 +258,7 @@ describe('verify', () => {
       }
       return jwt.sign(payload, security.publicKey, { algorithm: 'HS256' })
     }
-    
+
     beforeEach(() => {
       challenges.jwtUnsignedChallenge = { solved: false, save } as unknown as Challenge
       challenges.jwtForgedChallenge = { solved: false, save } as unknown as Challenge
