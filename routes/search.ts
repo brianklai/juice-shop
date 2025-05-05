@@ -68,7 +68,8 @@ export function searchProducts () {
       res.json(utils.queryResultToJson(products))
     }
     
-    if (criteria.includes("'") && (utils.isChallengeEnabled(challenges.unionSqlInjectionChallenge) || utils.isChallengeEnabled(challenges.dbSchemaChallenge))) {
+    if ((criteria.includes("'") || criteria.includes('"') || criteria.includes('\\')) && 
+        (utils.isChallengeEnabled(challenges.unionSqlInjectionChallenge) || utils.isChallengeEnabled(challenges.dbSchemaChallenge))) {
       models.sequelize.query(`SELECT * FROM Products WHERE ((name LIKE '%${criteria}%' OR description LIKE '%${criteria}%') AND deletedAt IS NULL) ORDER BY name`) // vuln-code-snippet vuln-line unionSqlInjectionChallenge dbSchemaChallenge
         .then(([products]: any) => {
           processSearchResults(products, req, res, next);
