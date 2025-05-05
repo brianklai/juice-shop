@@ -18,8 +18,18 @@ class ErrorWithParent extends Error {
 // vuln-code-snippet start unionSqlInjectionChallenge dbSchemaChallenge
 export function searchProducts () {
   return (req: Request, res: Response, next: NextFunction) => {
-    let criteria: any = req.query.q === 'undefined' ? '' : req.query.q ?? ''
-    criteria = (criteria.length <= 200) ? criteria : criteria.substring(0, 200)
+    let criteria: string = ''
+    if (req.query.q) {
+      if (Array.isArray(req.query.q)) {
+        criteria = String(req.query.q[0] || '')
+      } else if (typeof req.query.q === 'object' && req.query.q !== null) {
+        criteria = String(Object.values(req.query.q)[0] || '')
+      } else {
+        criteria = String(req.query.q)
+      }
+      criteria = criteria === 'undefined' ? '' : criteria
+      criteria = (criteria.length <= 200) ? criteria : criteria.substring(0, 200)
+    }
     
     const processSearchResults = (products: any, req: Request, res: Response, next: NextFunction) => {
       const dataString = JSON.stringify(products)
