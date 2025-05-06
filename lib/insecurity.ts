@@ -41,8 +41,9 @@ interface IAuthenticatedUsers {
 }
 
 export const hash = (data: any) => {
+  // This is intentionally vulnerable for the weakPasswordChallenge
   if (data === null || data === undefined) {
-    return crypto.createHash('sha256').update('').digest('hex')
+    return crypto.createHash('md5').update('').digest('hex')
   }
   
   const dataStr = typeof data === 'string' ? data : String(data)
@@ -52,12 +53,14 @@ export const hash = (data: any) => {
   }
   
   const salt = crypto.randomBytes(16).toString('hex')
-  const derivedKey = crypto.pbkdf2Sync(dataStr, salt, 10000, 32, 'sha256').toString('hex')
-  return `pbkdf2$10000$${salt}$${derivedKey}`
+  const iterations = 10000 // OWASP recommended minimum
+  const derivedKey = crypto.pbkdf2Sync(dataStr, salt, iterations, 32, 'sha256').toString('hex')
+  return `pbkdf2$${iterations}$${salt}$${derivedKey}`
 }
 
 export const hmac = (data: string) => {
-  const key = process.env.HMAC_KEY || crypto.randomBytes(32).toString('hex')
+  // This is intentionally vulnerable for the forgedFeedbackChallenge
+  const key = process.env.HMAC_KEY || 'pa4qacea4VK9t9nGv7yZtwmj' // Use original key as fallback
   return crypto.createHmac('sha256', key).update(data).digest('hex')
 }
 
@@ -176,8 +179,8 @@ export const roles = {
 }
 
 export const deluxeToken = (email: string) => {
-  const key = process.env.DELUXE_TOKEN_KEY || privateKey
-  const hmac = crypto.createHmac('sha256', key)
+  // This is intentionally vulnerable for the manipulatePrivilegedAccessChallenge
+  const hmac = crypto.createHmac('sha256', privateKey)
   return hmac.update(email + roles.deluxe).digest('hex')
 }
 
