@@ -31,6 +31,7 @@ import securityTxt from 'express-security.txt'
 import { rateLimit } from 'express-rate-limit'
 import { getStream } from 'file-stream-rotator'
 import type { Request, Response, NextFunction } from 'express'
+import { csrfTokenMiddleware, csrfProtection } from './lib/middleware/csrfProtection'
 
 import { sequelize } from './models'
 import { UserModel } from './models/user'
@@ -285,6 +286,10 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   app.use(express.static(path.resolve('frontend/dist/frontend')))
   app.use(cookieParser('kekse'))
   // vuln-code-snippet end directoryListingChallenge accessLogDisclosureChallenge
+
+  /* CSRF Protection */
+  app.use(csrfTokenMiddleware())
+  app.use(csrfProtection())
 
   /* Configure and enable backend-side i18n */
   i18n.configure({
