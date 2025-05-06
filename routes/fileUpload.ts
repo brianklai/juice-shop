@@ -25,46 +25,109 @@ function ensureFileIsPassed ({ file }: Request, res: Response, next: NextFunctio
 }
 
 function handleZipFileUpload ({ file }: Request, res: Response, next: NextFunction) {
-  if (utils.endsWith(file?.originalname.toLowerCase(), '.zip')) {
-    if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.fileWriteChallenge)) {
-      const buffer = file.buffer
-      const filename = file.originalname.toLowerCase()
-      
-      const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '')
-      const tempFile = path.join(os.tmpdir(), safeFilename)
-      
-      fs.open(tempFile, 'w', function (err, fd) {
-        if (err != null) { next(err) }
-        fs.write(fd, buffer, 0, buffer.length, null, function (err) {
-          if (err != null) { next(err) }
-          fs.close(fd, function () {
-            fs.createReadStream(tempFile)
-              .pipe(unzipper.Parse())
-              .on('entry', function (entry: any) {
-                const fileName = entry.path
-                
-                const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '')
-                const targetDir = path.resolve('uploads/complaints')
-                const absolutePath = path.resolve(targetDir, safeFileName)
-                
-                const legalPath = path.resolve('ftp/legal.md')
-                challengeUtils.solveIf(challenges.fileWriteChallenge, () => { 
-                  return fileName === 'legal.md' && legalPath === path.resolve('ftp/legal.md')
-                })
-                
-                if (absolutePath.startsWith(targetDir)) {
-                  entry.pipe(fs.createWriteStream(absolutePath).on('error', function (err) { next(err) }))
-                } else {
-                  entry.autodrain()
+  try {
+    if (utils.endsWith(file?.originalname.toLowerCase(), '.zip')) {
+      if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.fileWriteChallenge)) {
+        const buffer = file.buffer
+        const filename = file.originalname.toLowerCase()
+        
+        const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '')
+        const tempFile = path.join(os.tmpdir(), safeFilename)
+        
+        fs.open(tempFile, 'w', function (err, fd) {
+          try {
+            if (err != null) { 
+              console.error('Error opening temp file:', err)
+              return next(err) 
+            }
+            
+            fs.write(fd, buffer, 0, buffer.length, null, function (err) {
+              try {
+                if (err != null) { 
+                  console.error('Error writing to temp file:', err)
+                  return next(err) 
                 }
-              }).on('error', function (err: unknown) { next(err) })
-          })
+                
+                fs.close(fd, function (closeErr) {
+                  try {
+                    if (closeErr) {
+                      console.error('Error closing file descriptor:', closeErr)
+                      return next(closeErr)
+                    }
+                    
+                    const readStream = fs.createReadStream(tempFile)
+                    
+                    readStream.on('error', function (readErr) {
+                      console.error('Error reading temp file:', readErr)
+                      next(readErr)
+                    })
+                    
+                    readStream
+                      .pipe(unzipper.Parse())
+                      .on('entry', function (entry: any) {
+                        try {
+                          const fileName = entry.path
+                          
+                          const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '')
+                          const targetDir = path.resolve('uploads/complaints')
+                          const absolutePath = path.resolve(targetDir, safeFileName)
+                          
+                          const legalPath = path.resolve('ftp/legal.md')
+                          challengeUtils.solveIf(challenges.fileWriteChallenge, () => { 
+                            return fileName === 'legal.md' && legalPath === path.resolve('ftp/legal.md')
+                          })
+                          
+                          if (absolutePath.startsWith(targetDir)) {
+                            const writeStream = fs.createWriteStream(absolutePath)
+                            
+                            writeStream.on('error', function (writeErr) {
+                              console.error('Error writing to file:', writeErr)
+                              next(writeErr)
+                            })
+                            
+                            entry.pipe(writeStream)
+                          } else {
+                            entry.autodrain()
+                          }
+                        } catch (entryError) {
+                          console.error('Error processing zip entry:', entryError)
+                          entry.autodrain()
+                        }
+                      })
+                      .on('error', function (unzipErr: unknown) {
+                        console.error('Error unzipping file:', unzipErr)
+                        next(unzipErr)
+                      })
+                      .on('finish', function() {
+                        fs.unlink(tempFile, (unlinkErr) => {
+                          if (unlinkErr) {
+                            console.error('Error removing temp file:', unlinkErr)
+                          }
+                        })
+                      })
+                  } catch (closeError) {
+                    console.error('Error in file close callback:', closeError)
+                    next(closeError)
+                  }
+                })
+              } catch (writeError) {
+                console.error('Error in file write callback:', writeError)
+                next(writeError)
+              }
+            })
+          } catch (openError) {
+            console.error('Error in file open callback:', openError)
+            next(openError)
+          }
         })
-      })
+      }
+      res.status(204).end()
+    } else {
+      next()
     }
-    res.status(204).end()
-  } else {
-    next()
+  } catch (outerError) {
+    console.error('Error in zip file upload handler:', outerError)
+    next(outerError)
   }
 }
 
@@ -84,75 +147,113 @@ function checkFileType ({ file }: Request, res: Response, next: NextFunction) {
 }
 
 function handleXmlUpload ({ file }: Request, res: Response, next: NextFunction) {
-  if (utils.endsWith(file?.originalname.toLowerCase(), '.xml')) {
-    challengeUtils.solveIf(challenges.deprecatedInterfaceChallenge, () => { return true })
-    if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.deprecatedInterfaceChallenge)) { // XXE attacks in Docker/Heroku containers regularly cause "segfault" crashes
-      const data = file.buffer.toString()
-      try {
-        if (typeof data !== 'string' || data.length > 10000) {
-          throw new Error('Invalid XML data format or size')
-        }
-        
-        const sandbox = { libxml, data }
-        vm.createContext(sandbox)
-        const xmlDoc = vm.runInContext('libxml.parseXml(data, { noblanks: true, noent: true, nocdata: true })', sandbox, { timeout: 2000 })
-        const xmlString = xmlDoc.toString(false)
-        challengeUtils.solveIf(challenges.xxeFileDisclosureChallenge, () => { return (utils.matchesEtcPasswdFile(xmlString) || utils.matchesSystemIniFile(xmlString)) })
-        res.status(410)
-        next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + utils.trunc(xmlString, 400) + ' (' + file.originalname + ')'))
-      } catch (err: any) { // TODO: Remove any
-        if (utils.contains(err.message, 'Script execution timed out')) {
-          if (challengeUtils.notSolved(challenges.xxeDosChallenge)) {
-            challengeUtils.solve(challenges.xxeDosChallenge)
+  try {
+    if (utils.endsWith(file?.originalname.toLowerCase(), '.xml')) {
+      challengeUtils.solveIf(challenges.deprecatedInterfaceChallenge, () => { return true })
+      if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.deprecatedInterfaceChallenge)) { // XXE attacks in Docker/Heroku containers regularly cause "segfault" crashes
+        try {
+          const data = file.buffer.toString()
+          try {
+            if (typeof data !== 'string' || data.length > 10000) {
+              throw new Error('Invalid XML data format or size')
+            }
+            
+            try {
+              const sandbox = { libxml, data }
+              vm.createContext(sandbox)
+              const xmlDoc = vm.runInContext('libxml.parseXml(data, { noblanks: true, noent: true, nocdata: true })', sandbox, { timeout: 2000 })
+              const xmlString = xmlDoc.toString(false)
+              challengeUtils.solveIf(challenges.xxeFileDisclosureChallenge, () => { return (utils.matchesEtcPasswdFile(xmlString) || utils.matchesSystemIniFile(xmlString)) })
+              res.status(410)
+              return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + utils.trunc(xmlString, 400) + ' (' + file.originalname + ')'))
+            } catch (vmError: any) {
+              console.error('Error in VM execution:', vmError)
+              if (utils.contains(vmError.message, 'Script execution timed out')) {
+                if (challengeUtils.notSolved(challenges.xxeDosChallenge)) {
+                  challengeUtils.solve(challenges.xxeDosChallenge)
+                }
+                res.status(503)
+                return next(new Error('Sorry, we are temporarily not available! Please try again later.'))
+              } else {
+                res.status(410)
+                return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + vmError.message + ' (' + file.originalname + ')'))
+              }
+            }
+          } catch (dataError: any) {
+            console.error('Error processing XML data:', dataError)
+            res.status(410)
+            return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + dataError.message + ' (' + file.originalname + ')'))
           }
-          res.status(503)
-          next(new Error('Sorry, we are temporarily not available! Please try again later.'))
-        } else {
+        } catch (bufferError: any) {
+          console.error('Error converting buffer to string:', bufferError)
           res.status(410)
-          next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + err.message + ' (' + file.originalname + ')'))
+          return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: Error processing file (' + file.originalname + ')'))
         }
+      } else {
+        res.status(410)
+        return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons (' + file?.originalname + ')'))
       }
-    } else {
-      res.status(410)
-      next(new Error('B2B customer complaints via file upload have been deprecated for security reasons (' + file?.originalname + ')'))
     }
+    return next()
+  } catch (outerError) {
+    console.error('Error in XML upload handler:', outerError)
+    res.status(500)
+    return next(new Error('Error processing XML upload'))
   }
-  next()
 }
 
 function handleYamlUpload ({ file }: Request, res: Response, next: NextFunction) {
-  if (utils.endsWith(file?.originalname.toLowerCase(), '.yml') || utils.endsWith(file?.originalname.toLowerCase(), '.yaml')) {
-    challengeUtils.solveIf(challenges.deprecatedInterfaceChallenge, () => { return true })
-    if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.deprecatedInterfaceChallenge)) {
-      const data = file.buffer.toString()
-      try {
-        if (typeof data !== 'string' || data.length > 10000) {
-          throw new Error('Invalid YAML data format or size')
-        }
-        
-        const sandbox = { yaml, data }
-        vm.createContext(sandbox)
-        const yamlString = vm.runInContext('JSON.stringify(yaml.load(data))', sandbox, { timeout: 2000 })
-        res.status(410)
-        next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + utils.trunc(yamlString, 400) + ' (' + file.originalname + ')'))
-      } catch (err: any) { // TODO: Remove any
-        if (utils.contains(err.message, 'Invalid string length') || utils.contains(err.message, 'Script execution timed out')) {
-          if (challengeUtils.notSolved(challenges.yamlBombChallenge)) {
-            challengeUtils.solve(challenges.yamlBombChallenge)
+  try {
+    if (utils.endsWith(file?.originalname.toLowerCase(), '.yml') || utils.endsWith(file?.originalname.toLowerCase(), '.yaml')) {
+      challengeUtils.solveIf(challenges.deprecatedInterfaceChallenge, () => { return true })
+      if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.deprecatedInterfaceChallenge)) {
+        try {
+          const data = file.buffer.toString()
+          try {
+            if (typeof data !== 'string' || data.length > 10000) {
+              throw new Error('Invalid YAML data format or size')
+            }
+            
+            try {
+              const sandbox = { yaml, data }
+              vm.createContext(sandbox)
+              const yamlString = vm.runInContext('JSON.stringify(yaml.load(data))', sandbox, { timeout: 2000 })
+              res.status(410)
+              return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + utils.trunc(yamlString, 400) + ' (' + file.originalname + ')'))
+            } catch (vmError: any) {
+              console.error('Error in VM execution:', vmError)
+              if (utils.contains(vmError.message, 'Invalid string length') || utils.contains(vmError.message, 'Script execution timed out')) {
+                if (challengeUtils.notSolved(challenges.yamlBombChallenge)) {
+                  challengeUtils.solve(challenges.yamlBombChallenge)
+                }
+                res.status(503)
+                return next(new Error('Sorry, we are temporarily not available! Please try again later.'))
+              } else {
+                res.status(410)
+                return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + vmError.message + ' (' + file.originalname + ')'))
+              }
+            }
+          } catch (dataError: any) {
+            console.error('Error processing YAML data:', dataError)
+            res.status(410)
+            return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + dataError.message + ' (' + file.originalname + ')'))
           }
-          res.status(503)
-          next(new Error('Sorry, we are temporarily not available! Please try again later.'))
-        } else {
+        } catch (bufferError: any) {
+          console.error('Error converting buffer to string:', bufferError)
           res.status(410)
-          next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + err.message + ' (' + file.originalname + ')'))
+          return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: Error processing file (' + file.originalname + ')'))
         }
+      } else {
+        res.status(410)
+        return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons (' + file?.originalname + ')'))
       }
-    } else {
-      res.status(410)
-      next(new Error('B2B customer complaints via file upload have been deprecated for security reasons (' + file?.originalname + ')'))
     }
+    res.status(204).end()
+  } catch (outerError) {
+    console.error('Error in YAML upload handler:', outerError)
+    res.status(500)
+    return next(new Error('Error processing YAML upload'))
   }
-  res.status(204).end()
 }
 
 export {
