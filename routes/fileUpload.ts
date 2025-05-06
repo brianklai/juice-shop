@@ -25,110 +25,108 @@ function ensureFileIsPassed ({ file }: Request, res: Response, next: NextFunctio
   }
 }
 
+const TEMP_DIR = path.join(os.tmpdir(), 'juice-shop-uploads');
+
+try {
+  if (!fs.existsSync(TEMP_DIR)) {
+    fs.mkdirSync(TEMP_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.error('Error creating temporary directory:', err);
+}
+
 function handleZipFileUpload ({ file }: Request, res: Response, next: NextFunction) {
   try {
     if (utils.endsWith(file?.originalname.toLowerCase(), '.zip')) {
       if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.fileWriteChallenge)) {
         const buffer = file.buffer
-        const originalFilename = file.originalname.toLowerCase()
         
-        const randomFilename = `${crypto.randomUUID()}.zip`
-        const tempFile = path.join(os.tmpdir(), randomFilename)
+        const tempFilePath = path.join(TEMP_DIR, `${crypto.randomUUID()}.zip`);
         
-        fs.open(tempFile, 'w', function (err, fd) {
-          try {
-            if (err != null) { 
-              console.error('Error opening temp file:', err)
-              return next(err) 
-            }
-            
-            fs.write(fd, buffer, 0, buffer.length, null, function (err) {
-              try {
-                if (err != null) { 
-                  console.error('Error writing to temp file:', err)
-                  return next(err) 
-                }
-                
-                fs.close(fd, function (closeErr) {
-                  try {
-                    if (closeErr) {
-                      console.error('Error closing file descriptor:', closeErr)
-                      return next(closeErr)
-                    }
-                    
-                    const readStream = fs.createReadStream(tempFile)
-                    
-                    readStream.on('error', function (readErr) {
-                      console.error('Error reading temp file:', readErr)
-                      next(readErr)
-                    })
-                    
-                    readStream
-                      .pipe(unzipper.Parse())
-                      .on('entry', function (entry: any) {
-                        try {
-                          const fileName = entry.path
-                          
-                          const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '')
-                          const targetDir = path.resolve('uploads/complaints')
-                          const absolutePath = path.resolve(targetDir, safeFileName)
-                          
-                          const legalPath = path.resolve('ftp/legal.md')
-                          challengeUtils.solveIf(challenges.fileWriteChallenge, () => { 
-                            return fileName === 'legal.md' && legalPath === path.resolve('ftp/legal.md')
-                          })
-                          
-                          if (absolutePath.startsWith(targetDir)) {
-                            const writeStream = fs.createWriteStream(absolutePath)
-                            
-                            writeStream.on('error', function (writeErr) {
-                              console.error('Error writing to file:', writeErr)
-                              next(writeErr)
-                            })
-                            
-                            entry.pipe(writeStream)
-                          } else {
-                            entry.autodrain()
-                          }
-                        } catch (entryError) {
-                          console.error('Error processing zip entry:', entryError)
-                          entry.autodrain()
-                        }
-                      })
-                      .on('error', function (unzipErr: unknown) {
-                        console.error('Error unzipping file:', unzipErr)
-                        next(unzipErr)
-                      })
-                      .on('finish', function() {
-                        fs.unlink(tempFile, (unlinkErr) => {
-                          if (unlinkErr) {
-                            console.error('Error removing temp file:', unlinkErr)
-                          }
-                        })
-                      })
-                  } catch (closeError) {
-                    console.error('Error in file close callback:', closeError)
-                    next(closeError)
-                  }
-                })
-              } catch (writeError) {
-                console.error('Error in file write callback:', writeError)
-                next(writeError)
-              }
-            })
-          } catch (openError) {
-            console.error('Error in file open callback:', openError)
-            next(openError)
-          }
-        })
+        try {
+          fs.writeFileSync(tempFilePath, buffer);
+          
+          processZipFile(tempFilePath, next);
+          
+        } catch (fileError) {
+          console.error('Error handling file operations:', fileError);
+          next(fileError);
+        }
       }
-      res.status(204).end()
+      res.status(204).end();
     } else {
-      next()
+      next();
     }
   } catch (outerError) {
-    console.error('Error in zip file upload handler:', outerError)
-    next(outerError)
+    console.error('Error in zip file upload handler:', outerError);
+    next(outerError);
+  }
+}
+
+function processZipFile(zipFilePath: string, next: NextFunction) {
+  try {
+    const readStream = fs.createReadStream(zipFilePath);
+    
+    readStream.on('error', function (readErr) {
+      console.error('Error reading temp file:', readErr);
+      cleanupTempFile(zipFilePath);
+      next(readErr);
+    });
+    
+    readStream
+      .pipe(unzipper.Parse())
+      .on('entry', function (entry: any) {
+        try {
+          const fileName = entry.path;
+          
+          const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '');
+          const targetDir = path.resolve('uploads/complaints');
+          const absolutePath = path.resolve(targetDir, safeFileName);
+          
+          const legalPath = path.resolve('ftp/legal.md');
+          challengeUtils.solveIf(challenges.fileWriteChallenge, () => { 
+            return fileName === 'legal.md' && legalPath === path.resolve('ftp/legal.md');
+          });
+          
+          if (absolutePath.startsWith(targetDir)) {
+            const writeStream = fs.createWriteStream(absolutePath);
+            
+            writeStream.on('error', function (writeErr) {
+              console.error('Error writing to file:', writeErr);
+              next(writeErr);
+            });
+            
+            entry.pipe(writeStream);
+          } else {
+            entry.autodrain();
+          }
+        } catch (entryError) {
+          console.error('Error processing zip entry:', entryError);
+          entry.autodrain();
+        }
+      })
+      .on('error', function (unzipErr: unknown) {
+        console.error('Error unzipping file:', unzipErr);
+        cleanupTempFile(zipFilePath);
+        next(unzipErr);
+      })
+      .on('finish', function() {
+        cleanupTempFile(zipFilePath);
+      });
+  } catch (processError) {
+    console.error('Error processing zip file:', processError);
+    cleanupTempFile(zipFilePath);
+    next(processError);
+  }
+}
+
+function cleanupTempFile(filePath: string) {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (unlinkErr) {
+    console.error('Error removing temp file:', unlinkErr);
   }
 }
 
