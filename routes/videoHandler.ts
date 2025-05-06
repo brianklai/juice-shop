@@ -4,6 +4,7 @@
  */
 
 import fs from 'node:fs'
+import path from 'node:path'
 import pug from 'pug'
 import config from 'config'
 import { type Request, type Response } from 'express'
@@ -79,14 +80,32 @@ export const promotionVideo = () => {
 
 function getSubsFromFile () {
   const subtitles = config.get<string>('application.promotion.subtitles') ?? 'owasp_promo.vtt'
-  const data = fs.readFileSync('frontend/dist/frontend/assets/public/videos/' + subtitles, 'utf8')
+  const safeSubtitles = subtitles.replace(/[^a-zA-Z0-9._-]/g, '')
+  const baseDir = path.resolve('frontend/dist/frontend/assets/public/videos')
+  const filePath = path.resolve(baseDir, safeSubtitles)
+  
+  if (!filePath.startsWith(baseDir)) {
+    throw new Error('Invalid subtitles file path detected')
+  }
+  
+  const data = fs.readFileSync(filePath, 'utf8')
   return data.toString()
 }
 
 function videoPath () {
+  const baseDir = path.resolve('frontend/dist/frontend/assets/public/videos')
+  
   if (config.get<string>('application.promotion.video') !== null) {
     const video = utils.extractFilename(config.get<string>('application.promotion.video'))
-    return 'frontend/dist/frontend/assets/public/videos/' + video
+    const safeVideo = video.replace(/[^a-zA-Z0-9._-]/g, '')
+    const filePath = path.resolve(baseDir, safeVideo)
+    
+    if (!filePath.startsWith(baseDir)) {
+      throw new Error('Invalid video file path detected')
+    }
+    
+    return filePath
   }
-  return 'frontend/dist/frontend/assets/public/videos/owasp_promo.mp4'
+  
+  return path.resolve(baseDir, 'owasp_promo.mp4')
 }
