@@ -5,6 +5,7 @@
 
 import jwt from 'jsonwebtoken'
 import * as security from '../../lib/insecurity'
+import config from 'config'
 
 /**
  * Helper functions for generating test credentials and tokens
@@ -65,4 +66,36 @@ export const generateForgedToken = (email: string): string => {
     iat: 1582221675
   }
   return jwt.sign(payload, security.publicKey, { algorithm: 'HS256' })
+}
+
+/**
+ * Test user credentials for admin user
+ */
+export const adminCredentials = {
+  email: 'admin@' + config.get<string>('application.domain'),
+  password: 'admin123'
+}
+
+/**
+ * Test user credentials for jim user
+ */
+export const jimCredentials = {
+  email: 'jim@' + config.get<string>('application.domain'),
+  password: 'ncc-1701'
+}
+
+/**
+ * Test user credentials for accountant user
+ */
+export const accountantCredentials = {
+  email: 'accountant@' + config.get<string>('application.domain'),
+  password: 'i am an awesome accountant'
+}
+
+/**
+ * Test user credentials for Bjoern Kimminich user
+ */
+export const bjoernCredentials = {
+  email: 'bjoern.kimminich@gmail.com',
+  password: 'bW9jLmxpYW1nQGhjaW5pbW1pay5ucmVvamI='
 }
