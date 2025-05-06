@@ -10,7 +10,21 @@ import * as challengeUtils from '../lib/challengeUtils'
 
 export function serveEasterEgg () {
   return (req: Request, res: Response) => {
-    challengeUtils.solveIf(challenges.easterEggLevelTwoChallenge, () => { return true })
-    res.sendFile(path.resolve('frontend/dist/frontend/assets/private/threejs-demo.html'))
+    try {
+      challengeUtils.solveIf(challenges.easterEggLevelTwoChallenge, () => { return true })
+      
+      const baseDir = path.resolve('frontend/dist/frontend/assets/private')
+      const filePath = path.resolve(baseDir, 'threejs-demo.html')
+      
+      if (!filePath.startsWith(baseDir)) {
+        console.error('Security check failed: Path would be outside target directory')
+        return res.status(403).send('Forbidden')
+      }
+      
+      res.sendFile(filePath)
+    } catch (error) {
+      console.error('Error serving easter egg content:', error)
+      res.status(500).send('Error serving content')
+    }
   }
 }
