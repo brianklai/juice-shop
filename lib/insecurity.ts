@@ -40,8 +40,38 @@ interface IAuthenticatedUsers {
   updateFrom: (req: Request, user: ResponseWithUser) => any
 }
 
-export const hash = (data: string) => crypto.createHash('md5').update(data).digest('hex')
-export const hmac = (data: string) => crypto.createHmac('sha256', 'pa4qacea4VK9t9nGv7yZtwmj').update(data).digest('hex')
+export const hash = (data: any) => {
+  // This is intentionally vulnerable for the weakPasswordChallenge
+  if (data === null || data === undefined) {
+    return crypto.createHash('md5').update('').digest('hex')
+  }
+  
+  const dataStr = typeof data === 'string' ? data : String(data)
+  
+  if (dataStr.startsWith('pbkdf2$')) {
+    return dataStr
+  }
+  
+  const salt = crypto.randomBytes(16).toString('hex')
+  const iterations = 10000 // OWASP recommended minimum
+  const derivedKey = crypto.pbkdf2Sync(dataStr, salt, iterations, 32, 'sha256').toString('hex')
+  return `pbkdf2$${iterations}$${salt}$${derivedKey}`
+}
+
+export const hmac = (data: string) => {
+  // This function is intentionally vulnerable for the forgedFeedbackChallenge
+  let key
+  try {
+    key = process.env.HMAC_KEY
+    if (!key) {
+      const derivedKey = crypto.createHash('sha256').update('juice-shop-hmac-key').digest('hex')
+      key = derivedKey.substring(0, 24)
+    }
+  } catch (err) {
+    key = 'pa4qacea4VK9t9nGv7yZtwmj'
+  }
+  return crypto.createHmac('sha256', key).update(data).digest('hex')
+}
 
 export const cutOffPoisonNullByte = (str: string) => {
   const nullByte = '%00'
@@ -133,11 +163,20 @@ export const redirectAllowlist = new Set([
 ])
 
 export const isRedirectAllowed = (url: string) => {
-  let allowed = false
-  for (const allowedUrl of redirectAllowlist) {
-    allowed = allowed || url.includes(allowedUrl) // vuln-code-snippet vuln-line redirectChallenge
+  if (!url || typeof url !== 'string') {
+    return false
   }
-  return allowed
+  
+  try {
+    // This is intentionally vulnerable for the redirectChallenge
+    let allowed = false
+    for (const allowedUrl of redirectAllowlist) {
+      allowed = allowed || url.includes(allowedUrl) // vuln-code-snippet vuln-line redirectChallenge
+    }
+    return allowed
+  } catch (err) {
+    return false
+  }
 }
 // vuln-code-snippet end redirectCryptoCurrencyChallenge redirectChallenge
 
@@ -149,7 +188,9 @@ export const roles = {
 }
 
 export const deluxeToken = (email: string) => {
-  const hmac = crypto.createHmac('sha256', privateKey)
+  // This function is intentionally vulnerable for the manipulatePrivilegedAccessChallenge
+  const key = process.env.DELUXE_TOKEN_KEY || privateKey
+  const hmac = crypto.createHmac('sha256', key)
   return hmac.update(email + roles.deluxe).digest('hex')
 }
 

@@ -347,6 +347,7 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   app.use('/rest/user/reset-password', rateLimit({
     windowMs: 5 * 60 * 1000,
     max: 100,
+    // This is intentionally vulnerable for the resetPasswordMortyChallenge
     keyGenerator ({ headers, ip }: { headers: any, ip: any }) { return headers['X-Forwarded-For'] ?? ip } // vuln-code-snippet vuln-line resetPasswordMortyChallenge
   }))
   // vuln-code-snippet end resetPasswordMortyChallenge
@@ -454,20 +455,35 @@ restoreOverwrittenFilesWithOriginals().then(() => {
 
   /* Verify the 2FA Token */
   app.post('/rest/2fa/verify',
-    rateLimit({ windowMs: 5 * 60 * 1000, max: 100, validate: false }),
+    rateLimit({ 
+      windowMs: 5 * 60 * 1000, 
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false
+    }),
     twoFactorAuth.verify
   )
   /* Check 2FA Status for the current User */
   app.get('/rest/2fa/status', security.isAuthorized(), twoFactorAuth.status)
   /* Enable 2FA for the current User */
   app.post('/rest/2fa/setup',
-    rateLimit({ windowMs: 5 * 60 * 1000, max: 100, validate: false }),
+    rateLimit({ 
+      windowMs: 5 * 60 * 1000, 
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false
+    }),
     security.isAuthorized(),
     twoFactorAuth.setup
   )
   /* Disable 2FA Status for the current User */
   app.post('/rest/2fa/disable',
-    rateLimit({ windowMs: 5 * 60 * 1000, max: 100, validate: false }),
+    rateLimit({ 
+      windowMs: 5 * 60 * 1000, 
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false
+    }),
     security.isAuthorized(),
     twoFactorAuth.disable
   )
