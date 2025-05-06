@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-import os from 'node:os'
 import fs from 'node:fs'
 import vm from 'node:vm'
 import path from 'node:path'
@@ -23,16 +22,6 @@ function ensureFileIsPassed ({ file }: Request, res: Response, next: NextFunctio
   } else {
     return res.status(400).json({ error: 'File is not passed' })
   }
-}
-
-const TEMP_DIR = path.join(os.tmpdir(), 'juice-shop-uploads');
-
-try {
-  if (!fs.existsSync(TEMP_DIR)) {
-    fs.mkdirSync(TEMP_DIR, { recursive: true });
-  }
-} catch (err) {
-  console.error('Error creating temporary directory:', err);
 }
 
 function handleZipFileUpload ({ file }: Request, res: Response, next: NextFunction) {
