@@ -10,7 +10,21 @@ import * as challengeUtils from '../lib/challengeUtils'
 
 export function servePremiumContent () {
   return (req: Request, res: Response) => {
-    challengeUtils.solveIf(challenges.premiumPaywallChallenge, () => { return true })
-    res.sendFile(path.resolve('frontend/dist/frontend/assets/private/JuiceShop_Wallpaper_1920x1080_VR.jpg'))
+    try {
+      challengeUtils.solveIf(challenges.premiumPaywallChallenge, () => { return true })
+      
+      const baseDir = path.resolve('frontend/dist/frontend/assets/private')
+      const filePath = path.resolve(baseDir, 'JuiceShop_Wallpaper_1920x1080_VR.jpg')
+      
+      if (!filePath.startsWith(baseDir)) {
+        console.error('Security check failed: Path would be outside target directory')
+        return res.status(403).send('Forbidden')
+      }
+      
+      res.sendFile(filePath)
+    } catch (error) {
+      console.error('Error serving premium content:', error)
+      res.status(500).send('Error serving premium content')
+    }
   }
 }
