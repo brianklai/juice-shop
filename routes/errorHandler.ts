@@ -18,7 +18,13 @@ export function errorHandler () {
     }
 
     if (req?.headers?.accept === 'application/json') {
-      res.status(500).json({ error: JSON.parse(JSON.stringify(error)) })
+      try {
+        const serializedError = JSON.stringify(error)
+        const parsedError = serializedError ? JSON.parse(serializedError) : { message: 'Unknown error' }
+        res.status(500).json({ error: parsedError })
+      } catch (err) {
+        res.status(500).json({ error: { message: error instanceof Error ? error.message : 'Unknown error' } })
+      }
       return
     }
 
