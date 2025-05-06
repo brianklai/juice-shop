@@ -4,6 +4,7 @@
  */
 
 import fs from 'node:fs/promises'
+import path from 'node:path'
 import { type Request, type Response, type NextFunction } from 'express'
 import fileType from 'file-type'
 
@@ -38,7 +39,17 @@ export function profileImageFileUpload () {
       return
     }
 
-    const filePath = `frontend/dist/frontend/assets/public/images/uploads/${loggedInUser.data.id}.${uploadedFileType.ext}`
+    const safeId = String(loggedInUser.data.id).replace(/[^a-zA-Z0-9._-]/g, '')
+    const safeExt = uploadedFileType.ext.replace(/[^a-zA-Z0-9._-]/g, '')
+    const baseDir = path.resolve('frontend/dist/frontend/assets/public/images/uploads')
+    const filePath = path.resolve(baseDir, `${safeId}.${safeExt}`)
+    
+    if (!filePath.startsWith(baseDir)) {
+      logger.warn('Path traversal attempt detected')
+      res.status(403)
+      return next(new Error('Invalid file path'))
+    }
+    
     try {
       await fs.writeFile(filePath, buffer)
     } catch (err) {
