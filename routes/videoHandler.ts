@@ -79,33 +79,45 @@ export const promotionVideo = () => {
 }
 
 function getSubsFromFile () {
-  const subtitles = config.get<string>('application.promotion.subtitles') ?? 'owasp_promo.vtt'
-  const safeSubtitles = subtitles.replace(/[^a-zA-Z0-9._-]/g, '')
-  const baseDir = path.resolve('frontend/dist/frontend/assets/public/videos')
-  const filePath = path.resolve(baseDir, safeSubtitles)
-  
-  if (!filePath.startsWith(baseDir)) {
-    throw new Error('Invalid subtitles file path detected')
+  try {
+    const subtitles = config.get<string>('application.promotion.subtitles') ?? 'owasp_promo.vtt'
+    const safeSubtitles = subtitles.replace(/[^a-zA-Z0-9._-]/g, '')
+    const baseDir = path.resolve('frontend/dist/frontend/assets/public/videos')
+    const filePath = path.resolve(baseDir, safeSubtitles)
+    
+    if (!filePath.startsWith(baseDir)) {
+      return ''; // Return empty subtitles instead of throwing
+    }
+    
+    const data = fs.readFileSync(filePath, 'utf8')
+    return data.toString()
+  } catch (error) {
+    console.error('Error loading subtitles:', error)
+    return '' // Return empty subtitles on error
   }
-  
-  const data = fs.readFileSync(filePath, 'utf8')
-  return data.toString()
 }
 
 function videoPath () {
-  const baseDir = path.resolve('frontend/dist/frontend/assets/public/videos')
-  
-  if (config.get<string>('application.promotion.video') !== null) {
-    const video = utils.extractFilename(config.get<string>('application.promotion.video'))
-    const safeVideo = video.replace(/[^a-zA-Z0-9._-]/g, '')
-    const filePath = path.resolve(baseDir, safeVideo)
+  try {
+    const baseDir = path.resolve('frontend/dist/frontend/assets/public/videos')
+    const defaultPath = path.resolve(baseDir, 'owasp_promo.mp4')
     
-    if (!filePath.startsWith(baseDir)) {
-      throw new Error('Invalid video file path detected')
+    if (config.get<string>('application.promotion.video') !== null) {
+      const video = utils.extractFilename(config.get<string>('application.promotion.video'))
+      const safeVideo = video.replace(/[^a-zA-Z0-9._-]/g, '')
+      const filePath = path.resolve(baseDir, safeVideo)
+      
+      if (!filePath.startsWith(baseDir)) {
+        console.error('Invalid video file path detected')
+        return defaultPath
+      }
+      
+      return filePath
     }
     
-    return filePath
+    return defaultPath
+  } catch (error) {
+    console.error('Error determining video path:', error)
+    return path.resolve('frontend/dist/frontend/assets/public/videos', 'owasp_promo.mp4')
   }
-  
-  return path.resolve(baseDir, 'owasp_promo.mp4')
 }

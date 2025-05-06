@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import yaml from 'js-yaml'
+import path from 'node:path'
 import { type NextFunction, type Request, type Response } from 'express'
 
 import * as accuracy from '../lib/accuracy'
