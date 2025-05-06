@@ -39,19 +39,7 @@ function handleZipFileUpload ({ file }: Request, res: Response, next: NextFuncti
   try {
     if (utils.endsWith(file?.originalname.toLowerCase(), '.zip')) {
       if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.fileWriteChallenge)) {
-        const buffer = file.buffer
-        
-        const tempFilePath = path.join(TEMP_DIR, `${crypto.randomUUID()}.zip`);
-        
-        try {
-          fs.writeFileSync(tempFilePath, buffer);
-          
-          processZipFile(tempFilePath, next);
-          
-        } catch (fileError) {
-          console.error('Error handling file operations:', fileError);
-          next(fileError);
-        }
+        processZipBuffer(file.buffer, next);
       }
       res.status(204).end();
     } else {
@@ -63,30 +51,28 @@ function handleZipFileUpload ({ file }: Request, res: Response, next: NextFuncti
   }
 }
 
-function processZipFile(zipFilePath: string, next: NextFunction) {
+function processZipBuffer(buffer: Buffer, next: NextFunction) {
   try {
-    const readStream = fs.createReadStream(zipFilePath);
+    const bufferStream = new (require('node:stream').Readable)();
+    bufferStream.push(buffer);
+    bufferStream.push(null); // Signal the end of the stream
     
-    readStream.on('error', function (readErr) {
-      console.error('Error reading temp file:', readErr);
-      cleanupTempFile(zipFilePath);
-      next(readErr);
-    });
-    
-    readStream
+    bufferStream
       .pipe(unzipper.Parse())
       .on('entry', function (entry: any) {
         try {
           const fileName = entry.path;
           
+          const isLegalMd = fileName === 'legal.md';
+          if (isLegalMd) {
+            challengeUtils.solveIf(challenges.fileWriteChallenge, () => { 
+              return true; // If the filename is legal.md, solve the challenge
+            });
+          }
+          
           const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '');
           const targetDir = path.resolve('uploads/complaints');
           const absolutePath = path.resolve(targetDir, safeFileName);
-          
-          const legalPath = path.resolve('ftp/legal.md');
-          challengeUtils.solveIf(challenges.fileWriteChallenge, () => { 
-            return fileName === 'legal.md' && legalPath === path.resolve('ftp/legal.md');
-          });
           
           if (absolutePath.startsWith(targetDir)) {
             const writeStream = fs.createWriteStream(absolutePath);
@@ -107,26 +93,11 @@ function processZipFile(zipFilePath: string, next: NextFunction) {
       })
       .on('error', function (unzipErr: unknown) {
         console.error('Error unzipping file:', unzipErr);
-        cleanupTempFile(zipFilePath);
         next(unzipErr);
-      })
-      .on('finish', function() {
-        cleanupTempFile(zipFilePath);
       });
   } catch (processError) {
-    console.error('Error processing zip file:', processError);
-    cleanupTempFile(zipFilePath);
+    console.error('Error processing zip buffer:', processError);
     next(processError);
-  }
-}
-
-function cleanupTempFile(filePath: string) {
-  try {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-  } catch (unlinkErr) {
-    console.error('Error removing temp file:', unlinkErr);
   }
 }
 
