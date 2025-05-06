@@ -5,6 +5,7 @@
 
 import * as frisby from 'frisby'
 import config from 'config'
+import { generateInvalidAuthToken } from '../helpers/testCredentials'
 
 const API_URL = 'http://localhost:3000/api'
 const REST_URL = 'http://localhost:3000/rest'
@@ -78,7 +79,7 @@ describe('/rest/user/change-password', () => {
   })
 
   it('GET password change with passing unrecognized authorization token', () => {
-    return frisby.get(REST_URL + '/user/change-password?new=foo&repeat=foo', { headers: { Authorization: 'Bearer unknown' } })
+    return frisby.get(REST_URL + '/user/change-password?new=foo&repeat=foo', { headers: { Authorization: 'Bearer ' + generateInvalidAuthToken() } })
       .expect('status', 500)
       .expect('header', 'content-type', /text\/html/)
       .expect('bodyContains', '<h1>' + config.get<string>('application.name') + ' (Express')

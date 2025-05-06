@@ -15,6 +15,7 @@ import { type UserModel } from 'models/user'
 import * as utils from '../../lib/utils'
 import * as verify from '../../routes/verify'
 import jwt from 'jsonwebtoken'
+import { generateUnsignedToken, generateForgedToken as generateForgedTestToken } from '../helpers/testCredentials'
 const expect = chai.expect
 
 chai.use(sinonChai)
@@ -269,7 +270,7 @@ describe('verify', () => {
       Header: { "alg": "none", "typ": "JWT" }
       Payload: { "data": { "email": "jwtn3d@juice-sh.op" }, "iat": 1508639612, "exp": 9999999999 }
        */
-      req.headers = { authorization: 'Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJkYXRhIjp7ImVtYWlsIjoiand0bjNkQGp1aWNlLXNoLm9wIn0sImlhdCI6MTUwODYzOTYxMiwiZXhwIjo5OTk5OTk5OTk5fQ.' }
+      req.headers = { authorization: `Bearer ${generateUnsignedToken('jwtn3d@juice-sh.op')}` }
 
       verify.jwtChallenges()(req, res, next)
 
@@ -281,7 +282,7 @@ describe('verify', () => {
       Header: { "alg": "none", "typ": "JWT" }
       Payload: { "data": { "email": "jwtn3d@" }, "iat": 1508639612, "exp": 9999999999 }
        */
-      req.headers = { authorization: 'Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJkYXRhIjp7ImVtYWlsIjoiand0bjNkQCJ9LCJpYXQiOjE1MDg2Mzk2MTIsImV4cCI6OTk5OTk5OTk5OX0.' }
+      req.headers = { authorization: `Bearer ${generateUnsignedToken('jwtn3d@')}` }
 
       verify.jwtChallenges()(req, res, next)
 
