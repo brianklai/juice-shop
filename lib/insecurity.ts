@@ -40,13 +40,19 @@ interface IAuthenticatedUsers {
   updateFrom: (req: Request, user: ResponseWithUser) => any
 }
 
-export const hash = (data: string) => {
-  if (!data.includes('$')) {
+export const hash = (data: any) => {
+  if (data === null || data === undefined) {
+    return crypto.createHash('sha256').update('').digest('hex')
+  }
+  
+  const dataStr = typeof data === 'string' ? data : String(data)
+  
+  if (!dataStr.includes('$')) {
     const salt = crypto.randomBytes(16).toString('hex')
-    const derivedKey = crypto.pbkdf2Sync(data, salt, 10000, 32, 'sha256').toString('hex')
+    const derivedKey = crypto.pbkdf2Sync(dataStr, salt, 10000, 32, 'sha256').toString('hex')
     return `pbkdf2$10000$${salt}$${derivedKey}`
   } else {
-    return crypto.createHash('sha256').update(data).digest('hex')
+    return crypto.createHash('sha256').update(dataStr).digest('hex')
   }
 }
 
