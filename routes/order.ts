@@ -39,10 +39,18 @@ export function placeOrder () {
           const customer = security.authenticatedUsers.from(req)
           const email = customer ? customer.data ? customer.data.email : '' : ''
           const orderId = security.hash(email).slice(0, 4) + '-' + utils.randomHexString(16)
-          const pdfFile = `order_${orderId}.pdf`
+          const safeOrderId = orderId.replace(/[^a-zA-Z0-9._-]/g, '')
+          const pdfFile = `order_${safeOrderId}.pdf`
           const doc = new PDFDocument()
           const date = new Date().toJSON().slice(0, 10)
-          const fileWriter = doc.pipe(fs.createWriteStream(path.join('ftp/', pdfFile)))
+          const baseDir = path.resolve('ftp')
+          const filePath = path.resolve(baseDir, pdfFile)
+          
+          if (!filePath.startsWith(baseDir)) {
+            return next(new Error('Invalid file path'))
+          }
+          
+          const fileWriter = doc.pipe(fs.createWriteStream(filePath))
 
           fileWriter.on('finish', async () => {
             void basket.update({ coupon: null })
