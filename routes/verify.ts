@@ -125,8 +125,24 @@ function jwtChallenge (challenge: Challenge, req: Request, algorithm: string, em
 }
 
 function hasAlgorithm (token: string, algorithm: string) {
-  const header = JSON.parse(Buffer.from(token.split('.')[0], 'base64').toString())
-  return token && header && header.alg === algorithm
+  try {
+    if (!token || typeof token !== 'string' || !token.includes('.')) {
+      return false
+    }
+    
+    const headerBase64 = token.split('.')[0]
+    const headerString = Buffer.from(headerBase64, 'base64').toString()
+    
+    if (!headerString || typeof headerString !== 'string' || headerString.length > 1000) {
+      return false
+    }
+    
+    const header = JSON.parse(headerString)
+    return header && typeof header === 'object' && header !== null && header.alg === algorithm
+  } catch (err) {
+    console.log('Error parsing JWT header:', err)
+    return false
+  }
 }
 
 function hasEmail (token: { data: { email: string } }, email: string | RegExp) {
