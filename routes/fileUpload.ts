@@ -39,7 +39,7 @@ function handleZipFileUpload ({ file }: Request, res: Response, next: NextFuncti
   try {
     if (utils.endsWith(file?.originalname.toLowerCase(), '.zip')) {
       if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.fileWriteChallenge)) {
-        processZipBuffer(file.buffer, next);
+        processZipInMemory(file.buffer, next);
       }
       res.status(204).end();
     } else {
@@ -51,7 +51,7 @@ function handleZipFileUpload ({ file }: Request, res: Response, next: NextFuncti
   }
 }
 
-function processZipBuffer(buffer: Buffer, next: NextFunction) {
+function processZipInMemory(buffer: Buffer, next: NextFunction) {
   try {
     const targetDir = path.resolve('uploads/complaints');
     try {
