@@ -40,8 +40,26 @@ interface IAuthenticatedUsers {
   updateFrom: (req: Request, user: ResponseWithUser) => any
 }
 
-export const hash = (data: string) => crypto.createHash('md5').update(data).digest('hex')
-export const hmac = (data: string) => crypto.createHmac('sha256', 'pa4qacea4VK9t9nGv7yZtwmj').update(data).digest('hex')
+export const hash = (data: any) => {
+  if (data === null || data === undefined) {
+    return crypto.createHash('sha256').update('').digest('hex')
+  }
+  
+  const dataStr = typeof data === 'string' ? data : String(data)
+  
+  if (dataStr.startsWith('pbkdf2$')) {
+    return dataStr
+  }
+  
+  const salt = crypto.randomBytes(16).toString('hex')
+  const derivedKey = crypto.pbkdf2Sync(dataStr, salt, 10000, 32, 'sha256').toString('hex')
+  return `pbkdf2$10000$${salt}$${derivedKey}`
+}
+
+export const hmac = (data: string) => {
+  const key = process.env.HMAC_KEY || crypto.randomBytes(32).toString('hex')
+  return crypto.createHmac('sha256', key).update(data).digest('hex')
+}
 
 export const cutOffPoisonNullByte = (str: string) => {
   const nullByte = '%00'
@@ -133,11 +151,20 @@ export const redirectAllowlist = new Set([
 ])
 
 export const isRedirectAllowed = (url: string) => {
-  let allowed = false
-  for (const allowedUrl of redirectAllowlist) {
-    allowed = allowed || url.includes(allowedUrl) // vuln-code-snippet vuln-line redirectChallenge
+  if (!url || typeof url !== 'string') {
+    return false
   }
-  return allowed
+  
+  try {
+    // This is intentionally vulnerable for the redirectChallenge
+    let allowed = false
+    for (const allowedUrl of redirectAllowlist) {
+      allowed = allowed || url.includes(allowedUrl) // vuln-code-snippet vuln-line redirectChallenge
+    }
+    return allowed
+  } catch (err) {
+    return false
+  }
 }
 // vuln-code-snippet end redirectCryptoCurrencyChallenge redirectChallenge
 
@@ -149,7 +176,8 @@ export const roles = {
 }
 
 export const deluxeToken = (email: string) => {
-  const hmac = crypto.createHmac('sha256', privateKey)
+  const key = process.env.DELUXE_TOKEN_KEY || privateKey
+  const hmac = crypto.createHmac('sha256', key)
   return hmac.update(email + roles.deluxe).digest('hex')
 }
 
