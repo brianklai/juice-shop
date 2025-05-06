@@ -116,7 +116,7 @@
   "STATUS_PARTIALLY_SOLVED": "부분적으로 해결됨",
   "STATUS_UNAVAILABLE": "사용 불가",
   "STATUS_ALL": "전체",
-  "CALL_FOR_CONTRIBUTIONS": "새로운 도전에 대한 아이디어가 있으신가요? 여기에서 추적되지 않는 취약점을 발견하셨나요? <a href='http://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> 커뮤니티 채팅이나  <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> 이슈를 등록하여 알려주세요!",
+  "CALL_FOR_CONTRIBUTIONS": "새로운 도전에 대한 아이디어가 있으신가요? 여기에서 추적되지 않는 취약점을 발견하셨나요? <a href='https://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> 커뮤니티 채팅이나  <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> 이슈를 등록하여 알려주세요!",
   "CALL_FOR_FEEDBACK": "{{appname}}가 더 나은 서비스를 제공할 수 있도록 <a href='{{questionnaire}}'><i class='fas fa-poll-h'></i>사용자 설문</a>에 참여하여 주세요!",
   "CHALLENGE_SOLVED": "성공적으로 도전과제를 풀었습니다: {{challenge}}",
   "INVALID_CONTINUE_CODE": "잘못된 코드입니다.",

@@ -116,7 +116,7 @@
   "STATUS_PARTIALLY_SOLVED": "delvis löst",
   "STATUS_UNAVAILABLE": "inte tillgänglig",
   "STATUS_ALL": "alla",
-  "CALL_FOR_CONTRIBUTIONS": "Har du en idé om en ny utmaning? Hittade du en sårbarhet som inte spåras här? Låt oss veta via <a href='http://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> community-chatt eller genom att öppna ett <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a>-problem!",
+  "CALL_FOR_CONTRIBUTIONS": "Har du en idé om en ny utmaning? Hittade du en sårbarhet som inte spåras här? Låt oss veta via <a href='https://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> community-chatt eller genom att öppna ett <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a>-problem!",
   "CALL_FOR_FEEDBACK": "Hjälp oss att göra {{appname}} ännu bättre för dig genom att svara på vår <a href='{{questionnaire}}'><i class='fas fa-poll-h'></i>användarenkät</a>!",
   "CHALLENGE_SOLVED": "Du har löst en utmaning: {{challenge}}",
   "INVALID_CONTINUE_CODE": "Felaktig fortsättningskod.",

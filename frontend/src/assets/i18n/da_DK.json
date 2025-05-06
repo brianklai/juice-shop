@@ -116,7 +116,7 @@
   "STATUS_PARTIALLY_SOLVED": "partially solved",
   "STATUS_UNAVAILABLE": "utilgængelig",
   "STATUS_ALL": "all",
-  "CALL_FOR_CONTRIBUTIONS": "Got an idea for a new challenge? Found a vulnerability that is not tracked here? Let us know via <a href='http://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> community chat or by opening a <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> issue!",
+  "CALL_FOR_CONTRIBUTIONS": "Got an idea for a new challenge? Found a vulnerability that is not tracked here? Let us know via <a href='https://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> community chat or by opening a <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> issue!",
   "CALL_FOR_FEEDBACK": "Hjælp os med at gøre {{appname}} endnu bedre for dig ved at udfylde vores <a href='{{questionnaire}}'><i class='fas fa-poll-h'></i> spørgeskema</a>!",
   "CHALLENGE_SOLVED": "Det lykkedes dig at løse en udfordring: {{challenge}}",
   "INVALID_CONTINUE_CODE": "Ugyldig kode for fortsættelse.",

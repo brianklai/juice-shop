@@ -116,7 +116,7 @@
   "STATUS_PARTIALLY_SOLVED": "partially solved",
   "STATUS_UNAVAILABLE": "ei saatavilla",
   "STATUS_ALL": "all",
-  "CALL_FOR_CONTRIBUTIONS": "Got an idea for a new challenge? Found a vulnerability that is not tracked here? Let us know via <a href='http://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> community chat or by opening a <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> issue!",
+  "CALL_FOR_CONTRIBUTIONS": "Got an idea for a new challenge? Found a vulnerability that is not tracked here? Let us know via <a href='https://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> community chat or by opening a <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> issue!",
   "CALL_FOR_FEEDBACK": "Auta meitä kehittämään {{appname}} sovellusta entistäkin paremmaksi vastaamalla href='{{questionnaire}}'><i class='fas fa-poll-h'></i>käyttäjäkyselyyn</a>!",
   "CHALLENGE_SOLVED": "Olet onnistuneesti ratkaissut tehtävän: {{challenge}}",
   "INVALID_CONTINUE_CODE": "Koodi ei kelpaa",
