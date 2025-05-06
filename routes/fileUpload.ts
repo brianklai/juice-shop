@@ -78,6 +78,10 @@ function handleXmlUpload ({ file }: Request, res: Response, next: NextFunction) 
     if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.deprecatedInterfaceChallenge)) { // XXE attacks in Docker/Heroku containers regularly cause "segfault" crashes
       const data = file.buffer.toString()
       try {
+        if (typeof data !== 'string' || data.length > 10000) {
+          throw new Error('Invalid XML data format or size')
+        }
+        
         const sandbox = { libxml, data }
         vm.createContext(sandbox)
         const xmlDoc = vm.runInContext('libxml.parseXml(data, { noblanks: true, noent: true, nocdata: true })', sandbox, { timeout: 2000 })
@@ -111,6 +115,10 @@ function handleYamlUpload ({ file }: Request, res: Response, next: NextFunction)
     if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.deprecatedInterfaceChallenge)) {
       const data = file.buffer.toString()
       try {
+        if (typeof data !== 'string' || data.length > 10000) {
+          throw new Error('Invalid YAML data format or size')
+        }
+        
         const sandbox = { yaml, data }
         vm.createContext(sandbox)
         const yamlString = vm.runInContext('JSON.stringify(yaml.load(data))', sandbox, { timeout: 2000 })
