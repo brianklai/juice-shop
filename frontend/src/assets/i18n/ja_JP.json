@@ -116,7 +116,7 @@
   "STATUS_PARTIALLY_SOLVED": "partially solved",
   "STATUS_UNAVAILABLE": "利用できません",
   "STATUS_ALL": "all",
-  "CALL_FOR_CONTRIBUTIONS": "Got an idea for a new challenge? Found a vulnerability that is not tracked here? Let us know via <a href='http://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> community chat or by opening a <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> issue!",
+  "CALL_FOR_CONTRIBUTIONS": "Got an idea for a new challenge? Found a vulnerability that is not tracked here? Let us know via <a href='https://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> community chat or by opening a <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> issue!",
   "CALL_FOR_FEEDBACK": "よりよい {{appname}} を提供するための<a href='{{questionnaire}}'><i class='fas fa-poll-h'></i>アンケート</a>にお答えください！",
   "CHALLENGE_SOLVED": "チャレンジを解決しました: {{challenge}}",
   "INVALID_CONTINUE_CODE": "無効なコンティニューコード",

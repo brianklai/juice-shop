@@ -116,7 +116,7 @@
   "STATUS_PARTIALLY_SOLVED": "teilweise gelöst",
   "STATUS_UNAVAILABLE": "nid verfügbar",
   "STATUS_ALL": "alle",
-  "CALL_FOR_CONTRIBUTIONS": "Du hast eine Idee für eine neue Herausforderung? Du hast eine Schwachstelle gefunden, die hier nicht aufgeführt ist? Gib uns Bescheid via <a href='http://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> Community-Chat oder eröffne ein <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> Issue!",
+  "CALL_FOR_CONTRIBUTIONS": "Du hast eine Idee für eine neue Herausforderung? Du hast eine Schwachstelle gefunden, die hier nicht aufgeführt ist? Gib uns Bescheid via <a href='https://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> Community-Chat oder eröffne ein <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> Issue!",
   "CALL_FOR_FEEDBACK": "Bitte hilf uns, {{appname}} für dich noch besser zu machen, indem du unseren <a href='{{questionnaire}}'><i class='fas fa-poll-h'></i>Anwenderfragebogen</a> beantwortest!",
   "CHALLENGE_SOLVED": "Guet gmacht! Du hesch erfougrich ä Useforderig glöst: {{challenge}}",
   "INVALID_CONTINUE_CODE": "Ungüutige Code zum Witermache.",

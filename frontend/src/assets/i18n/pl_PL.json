@@ -116,7 +116,7 @@
   "STATUS_PARTIALLY_SOLVED": "częściowo rozwiązany",
   "STATUS_UNAVAILABLE": "Niedostępne",
   "STATUS_ALL": "wszystkie",
-  "CALL_FOR_CONTRIBUTIONS": "Masz pomysł na nowe wyzwanie? Znalazłeś słabość który nie jest przewidziany? Daj nam znać poprzez <a href='http://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> czat wspólnowy lub poprzez otwarcie <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> zgłoszenia!",
+  "CALL_FOR_CONTRIBUTIONS": "Masz pomysł na nowe wyzwanie? Znalazłeś słabość który nie jest przewidziany? Daj nam znać poprzez <a href='https://gitter.im/bkimminich/juice-shop'><i class='fab fa-gitter'></i>Gitter.im</a> czat wspólnowy lub poprzez otwarcie <a href='https://github.com/juice-shop/juice-shop/issues'><i class='fab fa-github'></i>GitHub</a> zgłoszenia!",
   "CALL_FOR_FEEDBACK": "Pomóż nam sprawić że {{appname}} będzie jeszcze lepszy poprzez wypełnienie naszego <a href='{{questionnaire}}'><i class='fas fa-poll-h'></i>kwestionariusz użytkownika</a>!",
   "CHALLENGE_SOLVED": "Pomyślnie rozwiązane wyzwanie: {{challenge}}",
   "INVALID_CONTINUE_CODE": "Błędny kod zaproszenia",
