@@ -10,6 +10,7 @@ import path from 'node:path'
 import yaml from 'js-yaml'
 import libxml from 'libxmljs'
 import unzipper from 'unzipper'
+import crypto from 'node:crypto'
 import { type NextFunction, type Request, type Response } from 'express'
 
 import * as challengeUtils from '../lib/challengeUtils'
@@ -31,7 +32,7 @@ function handleZipFileUpload ({ file }: Request, res: Response, next: NextFuncti
         const buffer = file.buffer
         const originalFilename = file.originalname.toLowerCase()
         
-        const randomFilename = `zip_${Date.now()}_${Math.floor(Math.random() * 10000)}.zip`
+        const randomFilename = `${crypto.randomUUID()}.zip`
         const tempFile = path.join(os.tmpdir(), randomFilename)
         
         fs.open(tempFile, 'w', function (err, fd) {
