@@ -17,6 +17,13 @@ on:
       - 'LICENSE'
       - 'data/static/i18n/*.json'
       - 'frontend/src/assets/i18n/*.json'
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+  checks: write
+  pull-requests: write
+  packages: read
 env:
   NODE_DEFAULT_VERSION: 20
   NODE_OPTIONS: "--max_old_space_size=4096"
