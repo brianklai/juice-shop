@@ -59,8 +59,17 @@ export const hash = (data: any) => {
 }
 
 export const hmac = (data: string) => {
-  // This is intentionally vulnerable for the forgedFeedbackChallenge
-  const key = process.env.HMAC_KEY || 'pa4qacea4VK9t9nGv7yZtwmj' // Use original key as fallback
+  // This function is intentionally vulnerable for the forgedFeedbackChallenge
+  let key
+  try {
+    key = process.env.HMAC_KEY
+    if (!key) {
+      const derivedKey = crypto.createHash('sha256').update('juice-shop-hmac-key').digest('hex')
+      key = derivedKey.substring(0, 24)
+    }
+  } catch (err) {
+    key = 'pa4qacea4VK9t9nGv7yZtwmj'
+  }
   return crypto.createHmac('sha256', key).update(data).digest('hex')
 }
 
@@ -179,8 +188,9 @@ export const roles = {
 }
 
 export const deluxeToken = (email: string) => {
-  // This is intentionally vulnerable for the manipulatePrivilegedAccessChallenge
-  const hmac = crypto.createHmac('sha256', privateKey)
+  // This function is intentionally vulnerable for the manipulatePrivilegedAccessChallenge
+  const key = process.env.DELUXE_TOKEN_KEY || privateKey
+  const hmac = crypto.createHmac('sha256', key)
   return hmac.update(email + roles.deluxe).digest('hex')
 }
 
