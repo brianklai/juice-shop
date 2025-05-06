@@ -5,6 +5,7 @@
 
 import { type Request, type Response, type NextFunction } from 'express'
 import fs from 'node:fs/promises'
+import path from 'node:path'
 import config from 'config'
 import pug from 'pug'
 
@@ -28,9 +29,15 @@ export function errorHandler () {
       return
     }
 
-    const template = await fs.readFile('views/errorPage.pug', { encoding: 'utf-8' })
-    const title = `${config.get<string>('application.name')} (Express ${utils.version('express')})`
-    const fn = pug.compile(template)
-    res.status(500).send(fn({ title, error }))
+    try {
+      const templatePath = path.resolve('views/errorPage.pug')
+      const template = await fs.readFile(templatePath, { encoding: 'utf-8' })
+      const title = `${config.get<string>('application.name')} (Express ${utils.version('express')})`
+      const fn = pug.compile(template)
+      res.status(500).send(fn({ title, error }))
+    } catch (templateError) {
+      console.error('Error loading error page template:', templateError)
+      res.status(500).send('An error occurred: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    }
   }
 }
