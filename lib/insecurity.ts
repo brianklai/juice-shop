@@ -40,9 +40,18 @@ interface IAuthenticatedUsers {
   updateFrom: (req: Request, user: ResponseWithUser) => any
 }
 
-export const hash = (data: string) => crypto.createHash('sha256').update(data).digest('hex')
+export const hash = (data: string) => {
+  if (!data.includes('$')) {
+    const salt = crypto.randomBytes(16).toString('hex')
+    const derivedKey = crypto.pbkdf2Sync(data, salt, 10000, 32, 'sha256').toString('hex')
+    return `pbkdf2$10000$${salt}$${derivedKey}`
+  } else {
+    return crypto.createHash('sha256').update(data).digest('hex')
+  }
+}
+
 export const hmac = (data: string) => {
-  const key = process.env.HMAC_KEY || 'pa4qacea4VK9t9nGv7yZtwmj' // Allow key to be configured via environment variable
+  const key = process.env.HMAC_KEY || crypto.randomBytes(32).toString('hex')
   return crypto.createHmac('sha256', key).update(data).digest('hex')
 }
 
