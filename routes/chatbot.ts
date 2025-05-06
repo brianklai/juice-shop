@@ -4,6 +4,7 @@
  */
 
 import fs from 'node:fs/promises'
+import path from 'node:path'
 import { type Request, type Response, type NextFunction } from 'express'
 import { type User } from '../data/types'
 import { UserModel } from '../models/user'
@@ -27,17 +28,32 @@ export let bot: Bot | null = null
 export async function initializeChatbot () {
   if (utils.isUrl(trainingFile)) {
     const file = utils.extractFilename(trainingFile)
+    const safeFile = file.replace(/[^a-zA-Z0-9._-]/g, '')
+    const baseDir = path.resolve('data/chatbot')
+    const filePath = path.resolve(baseDir, safeFile)
+    
+    if (!filePath.startsWith(baseDir)) {
+      throw new Error('Invalid file path')
+    }
+    
     const data = await download(trainingFile)
-    await fs.writeFile('data/chatbot/' + file, data)
+    await fs.writeFile(filePath, data)
   }
 
-  await fs.copyFile(
-    'data/static/botDefaultTrainingData.json',
-    'data/chatbot/botDefaultTrainingData.json'
-  )
+  const sourceFile = path.resolve('data/static/botDefaultTrainingData.json')
+  const destFile = path.resolve('data/chatbot/botDefaultTrainingData.json')
+  await fs.copyFile(sourceFile, destFile)
 
   trainingFile = utils.extractFilename(trainingFile)
-  const trainingSet = await fs.readFile(`data/chatbot/${trainingFile}`, 'utf8')
+  const safeTrainingFile = trainingFile.replace(/[^a-zA-Z0-9._-]/g, '')
+  const baseDir = path.resolve('data/chatbot')
+  const trainingFilePath = path.resolve(baseDir, safeTrainingFile)
+  
+  if (!trainingFilePath.startsWith(baseDir)) {
+    throw new Error('Invalid training file path')
+  }
+  
+  const trainingSet = await fs.readFile(trainingFilePath, 'utf8')
   
   if (!trainingSet || typeof trainingSet !== 'string' || trainingSet.length > 1000000) {
     throw new Error('Invalid training data format or size')

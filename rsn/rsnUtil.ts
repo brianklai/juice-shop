@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import colors from 'colors/safe'
 import { diffLines, structuredPatch } from 'diff'
 
@@ -63,7 +64,15 @@ const checkDiffs = async (keys: string[]) => {
       .then(snippet => {
         if (snippet == null) return
         process.stdout.write(val + ': ')
-        const fileData = fs.readFileSync(fixesPath + '/' + val).toString()
+        const safeVal = val.replace(/[^a-zA-Z0-9._-]/g, '')
+        const baseDir = path.resolve(fixesPath)
+        const filePath = path.resolve(baseDir, safeVal)
+        
+        if (!filePath.startsWith(baseDir)) {
+          throw new Error('Invalid file path detected')
+        }
+        
+        const fileData = fs.readFileSync(filePath).toString()
         const diff = diffLines(filterString(fileData), filterString(snippet.snippet))
         let line = 0
         for (const part of diff) {
@@ -120,7 +129,15 @@ const checkDiffs = async (keys: string[]) => {
 }
 
 async function seePatch (file: string) {
-  const fileData = fs.readFileSync(fixesPath + '/' + file).toString()
+  const safeFile = file.replace(/[^a-zA-Z0-9._-]/g, '')
+  const baseDir = path.resolve(fixesPath)
+  const filePath = path.resolve(baseDir, safeFile)
+  
+  if (!filePath.startsWith(baseDir)) {
+    throw new Error('Invalid file path detected')
+  }
+  
+  const fileData = fs.readFileSync(filePath).toString()
   const snippet = await retrieveCodeSnippet(file.split('_')[0])
   if (snippet == null) return
   const patch = structuredPatch(file, file, filterString(snippet.snippet), filterString(fileData))

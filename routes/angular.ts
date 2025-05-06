@@ -10,10 +10,16 @@ import * as utils from '../lib/utils'
 
 export function serveAngularClient () {
   return ({ url }: Request, res: Response, next: NextFunction) => {
-    if (!utils.startsWith(url, '/api') && !utils.startsWith(url, '/rest')) {
-      res.sendFile(path.resolve('frontend/dist/frontend/index.html'))
-    } else {
-      next(new Error('Unexpected path: ' + url))
+    try {
+      if (!utils.startsWith(url, '/api') && !utils.startsWith(url, '/rest')) {
+        const indexPath = path.resolve('frontend/dist/frontend/index.html')
+        res.sendFile(indexPath)
+      } else {
+        next(new Error('Unexpected path: ' + url))
+      }
+    } catch (error) {
+      console.error('Error serving Angular client:', error)
+      next(error)
     }
   }
 }

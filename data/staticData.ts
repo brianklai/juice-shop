@@ -5,7 +5,15 @@ import logger from '../lib/logger'
 import { type ChallengeKey } from 'models/challenge'
 
 export async function loadStaticData (file: string) {
-  const filePath = path.resolve('./data/static/' + file + '.yml')
+  const safeFile = file.replace(/[^a-zA-Z0-9_-]/g, '')
+  const baseDir = path.resolve('./data/static')
+  const filePath = path.resolve(baseDir, `${safeFile}.yml`)
+  
+  if (!filePath.startsWith(baseDir)) {
+    logger.error('Path traversal attempt detected')
+    return null
+  }
+  
   return await readFile(filePath, 'utf8')
     .then(safeLoad)
     .catch(() => logger.error('Could not open file: "' + filePath + '"'))
