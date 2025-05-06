@@ -92,8 +92,17 @@ export class PaymentComponent implements OnInit {
       this.walletBalance = balance
       this.walletBalanceStr = parseFloat(balance).toFixed(2)
     }, (err) => { console.log(err) })
-    this.couponPanelExpanded = localStorage.getItem('couponPanelExpanded') ? JSON.parse(localStorage.getItem('couponPanelExpanded')) : false
-    this.paymentPanelExpanded = localStorage.getItem('paymentPanelExpanded') ? JSON.parse(localStorage.getItem('paymentPanelExpanded')) : false
+    try {
+      const couponPanelValue = localStorage.getItem('couponPanelExpanded')
+      this.couponPanelExpanded = couponPanelValue ? JSON.parse(couponPanelValue) : false
+      
+      const paymentPanelValue = localStorage.getItem('paymentPanelExpanded')
+      this.paymentPanelExpanded = paymentPanelValue ? JSON.parse(paymentPanelValue) : false
+    } catch (err) {
+      console.log('Error parsing panel state from localStorage:', err)
+      this.couponPanelExpanded = false
+      this.paymentPanelExpanded = false
+    }
 
     this.configurationService.getApplicationConfiguration().subscribe((config) => {
       if (config?.application?.social) {
