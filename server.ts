@@ -312,7 +312,19 @@ restoreOverwrittenFilesWithOriginals().then(() => {
         req.body = {}
       }
       if (req.body !== Object(req.body)) { // Expensive workaround for 500 errors during Frisby test run (see #640)
-        req.body = JSON.parse(req.body)
+        try {
+          if (typeof req.body === 'string' && req.body.length <= 1000000) {
+            const parsedBody = JSON.parse(req.body)
+            if (parsedBody !== null && typeof parsedBody === 'object') {
+              req.body = parsedBody
+            }
+          } else {
+            req.body = {}
+          }
+        } catch (err) {
+          console.log('Error parsing request body:', err)
+          req.body = {}
+        }
       }
     }
     next()
