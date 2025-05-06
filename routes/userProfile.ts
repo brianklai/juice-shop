@@ -8,6 +8,7 @@ import { AllHtmlEntities as Entities } from 'html-entities'
 import config from 'config'
 import pug from 'pug'
 import fs from 'node:fs/promises'
+import path from 'node:path'
 
 import * as challengeUtils from '../lib/challengeUtils'
 import { themes } from '../views/themes/themes'
@@ -26,8 +27,10 @@ export function getUserProfile () {
   return async (req: Request, res: Response, next: NextFunction) => {
     let template: string
     try {
-      template = await fs.readFile('views/userProfile.pug', { encoding: 'utf-8' })
+      const templatePath = path.resolve('views/userProfile.pug')
+      template = await fs.readFile(templatePath, { encoding: 'utf-8' })
     } catch (err) {
+      console.error('Error loading user profile template:', err)
       next(err)
       return
     }
