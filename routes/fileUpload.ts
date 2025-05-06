@@ -109,16 +109,34 @@ function checkUploadSize ({ file }: Request, res: Response, next: NextFunction) 
 }
 
 function checkFileType ({ file }: Request, res: Response, next: NextFunction) {
-  const fileType = file?.originalname.substr(file.originalname.lastIndexOf('.') + 1).toLowerCase()
-  challengeUtils.solveIf(challenges.uploadTypeChallenge, () => {
-    return !(fileType === 'pdf' || fileType === 'xml' || fileType === 'zip' || fileType === 'yml' || fileType === 'yaml')
-  })
-  next()
+  try {
+    let fileType = '';
+    if (file?.originalname) {
+      const lastDotIndex = String(file.originalname).lastIndexOf('.');
+      if (lastDotIndex !== -1) {
+        fileType = String(file.originalname).substring(lastDotIndex + 1).toLowerCase();
+      }
+    }
+    
+    challengeUtils.solveIf(challenges.uploadTypeChallenge, () => {
+      return !(fileType === 'pdf' || fileType === 'xml' || fileType === 'zip' || fileType === 'yml' || fileType === 'yaml')
+    })
+    next();
+  } catch (error) {
+    console.error('Error checking file type:', error);
+    next(error);
+  }
 }
 
 function handleXmlUpload ({ file }: Request, res: Response, next: NextFunction) {
   try {
-    if (utils.endsWith(file?.originalname.toLowerCase(), '.xml')) {
+    let isXmlFile = false;
+    if (file?.originalname) {
+      const filename = String(file.originalname).toLowerCase();
+      isXmlFile = filename.endsWith('.xml');
+    }
+    
+    if (isXmlFile) {
       challengeUtils.solveIf(challenges.deprecatedInterfaceChallenge, () => { return true })
       if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.deprecatedInterfaceChallenge)) { // XXE attacks in Docker/Heroku containers regularly cause "segfault" crashes
         try {
@@ -135,7 +153,7 @@ function handleXmlUpload ({ file }: Request, res: Response, next: NextFunction) 
               const xmlString = xmlDoc.toString(false)
               challengeUtils.solveIf(challenges.xxeFileDisclosureChallenge, () => { return (utils.matchesEtcPasswdFile(xmlString) || utils.matchesSystemIniFile(xmlString)) })
               res.status(410)
-              return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + utils.trunc(xmlString, 400) + ' (' + file.originalname + ')'))
+              return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + utils.trunc(xmlString, 400) + ' (XML file)'))
             } catch (vmError: any) {
               console.error('Error in VM execution:', vmError)
               if (utils.contains(vmError.message, 'Script execution timed out')) {
@@ -146,22 +164,22 @@ function handleXmlUpload ({ file }: Request, res: Response, next: NextFunction) 
                 return next(new Error('Sorry, we are temporarily not available! Please try again later.'))
               } else {
                 res.status(410)
-                return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + vmError.message + ' (' + file.originalname + ')'))
+                return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + vmError.message + ' (XML file)'))
               }
             }
           } catch (dataError: any) {
             console.error('Error processing XML data:', dataError)
             res.status(410)
-            return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + dataError.message + ' (' + file.originalname + ')'))
+            return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + dataError.message + ' (XML file)'))
           }
         } catch (bufferError: any) {
           console.error('Error converting buffer to string:', bufferError)
           res.status(410)
-          return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: Error processing file (' + file.originalname + ')'))
+          return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: Error processing file (XML file)'))
         }
       } else {
         res.status(410)
-        return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons (' + file?.originalname + ')'))
+        return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons (XML file)'))
       }
     }
     return next()
@@ -174,7 +192,13 @@ function handleXmlUpload ({ file }: Request, res: Response, next: NextFunction) 
 
 function handleYamlUpload ({ file }: Request, res: Response, next: NextFunction) {
   try {
-    if (utils.endsWith(file?.originalname.toLowerCase(), '.yml') || utils.endsWith(file?.originalname.toLowerCase(), '.yaml')) {
+    let isYamlFile = false;
+    if (file?.originalname) {
+      const filename = String(file.originalname).toLowerCase();
+      isYamlFile = filename.endsWith('.yml') || filename.endsWith('.yaml');
+    }
+    
+    if (isYamlFile) {
       challengeUtils.solveIf(challenges.deprecatedInterfaceChallenge, () => { return true })
       if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.deprecatedInterfaceChallenge)) {
         try {
@@ -189,7 +213,7 @@ function handleYamlUpload ({ file }: Request, res: Response, next: NextFunction)
               vm.createContext(sandbox)
               const yamlString = vm.runInContext('JSON.stringify(yaml.load(data))', sandbox, { timeout: 2000 })
               res.status(410)
-              return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + utils.trunc(yamlString, 400) + ' (' + file.originalname + ')'))
+              return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + utils.trunc(yamlString, 400) + ' (YAML file)'))
             } catch (vmError: any) {
               console.error('Error in VM execution:', vmError)
               if (utils.contains(vmError.message, 'Invalid string length') || utils.contains(vmError.message, 'Script execution timed out')) {
@@ -200,22 +224,22 @@ function handleYamlUpload ({ file }: Request, res: Response, next: NextFunction)
                 return next(new Error('Sorry, we are temporarily not available! Please try again later.'))
               } else {
                 res.status(410)
-                return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + vmError.message + ' (' + file.originalname + ')'))
+                return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + vmError.message + ' (YAML file)'))
               }
             }
           } catch (dataError: any) {
             console.error('Error processing YAML data:', dataError)
             res.status(410)
-            return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + dataError.message + ' (' + file.originalname + ')'))
+            return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: ' + dataError.message + ' (YAML file)'))
           }
         } catch (bufferError: any) {
           console.error('Error converting buffer to string:', bufferError)
           res.status(410)
-          return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: Error processing file (' + file.originalname + ')'))
+          return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons: Error processing file (YAML file)'))
         }
       } else {
         res.status(410)
-        return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons (' + file?.originalname + ')'))
+        return next(new Error('B2B customer complaints via file upload have been deprecated for security reasons (YAML file)'))
       }
     }
     res.status(204).end()
