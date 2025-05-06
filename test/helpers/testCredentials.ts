@@ -18,15 +18,15 @@ import * as security from '../../lib/insecurity'
  */
 export const generateUnsignedToken = (email: string): string => {
   const header = { alg: 'none', typ: 'JWT' }
-  const payload = { 
+  const payload = {
     data: { email },
     iat: 1508639612,
     exp: 9999999999
   }
-  
+
   const headerBase64 = Buffer.from(JSON.stringify(header)).toString('base64').replace(/=/g, '')
   const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64').replace(/=/g, '')
-  
+
   return `${headerBase64}.${payloadBase64}.`
 }
 
