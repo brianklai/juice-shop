@@ -53,7 +53,18 @@ function handleZipFileUpload ({ file }: Request, res: Response, next: NextFuncti
 
 function processZipBuffer(buffer: Buffer, next: NextFunction) {
   try {
-    const bufferStream = new (require('node:stream').Readable)();
+    const targetDir = path.resolve('uploads/complaints');
+    try {
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+    } catch (mkdirError) {
+      console.error('Error creating target directory:', mkdirError);
+      return next(mkdirError);
+    }
+    
+    const { Readable } = require('node:stream');
+    const bufferStream = new Readable();
     bufferStream.push(buffer);
     bufferStream.push(null); // Signal the end of the stream
     
@@ -61,31 +72,29 @@ function processZipBuffer(buffer: Buffer, next: NextFunction) {
       .pipe(unzipper.Parse())
       .on('entry', function (entry: any) {
         try {
-          const fileName = entry.path;
+          const entryPath = entry.path;
           
-          const isLegalMd = fileName === 'legal.md';
-          if (isLegalMd) {
-            challengeUtils.solveIf(challenges.fileWriteChallenge, () => { 
-              return true; // If the filename is legal.md, solve the challenge
-            });
+          // Check for legal.md to solve the challenge
+          if (entryPath === 'legal.md') {
+            challengeUtils.solveIf(challenges.fileWriteChallenge, () => true);
           }
           
-          const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '');
-          const targetDir = path.resolve('uploads/complaints');
-          const absolutePath = path.resolve(targetDir, safeFileName);
+          const randomFilename = crypto.randomUUID() + '.bin';
+          const outputPath = path.resolve(targetDir, randomFilename);
           
-          if (absolutePath.startsWith(targetDir)) {
-            const writeStream = fs.createWriteStream(absolutePath);
-            
-            writeStream.on('error', function (writeErr) {
-              console.error('Error writing to file:', writeErr);
-              next(writeErr);
-            });
-            
-            entry.pipe(writeStream);
-          } else {
+          if (!outputPath.startsWith(targetDir)) {
+            console.error('Security check failed: Path would be outside target directory');
+            return entry.autodrain();
+          }
+          
+          const writeStream = fs.createWriteStream(outputPath);
+          
+          writeStream.on('error', function (writeErr) {
+            console.error('Error writing to file:', writeErr);
             entry.autodrain();
-          }
+          });
+          
+          entry.pipe(writeStream);
         } catch (entryError) {
           console.error('Error processing zip entry:', entryError);
           entry.autodrain();
