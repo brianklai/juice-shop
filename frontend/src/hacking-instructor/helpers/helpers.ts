@@ -124,8 +124,13 @@ export function waitForElementsInnerHtmlToBe (elementSelector: string, value: st
         elementSelector
       )
 
-      if (element && element.innerHTML === value) {
-        break
+      const tempDiv = document.createElement('div')
+      if (element) {
+        tempDiv.textContent = value
+        const safeValue = tempDiv.innerHTML
+        if (element.innerHTML === safeValue) {
+          break
+        }
       }
       await sleep(100)
     }

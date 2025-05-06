@@ -27,10 +27,20 @@ export function servePublicFiles () {
     if (file && (endsWithAllowlistedFileType(file) || (file === 'incident-support.kdbx'))) {
       file = security.cutOffPoisonNullByte(file)
 
-      challengeUtils.solveIf(challenges.directoryListingChallenge, () => { return file.toLowerCase() === 'acquisitions.md' })
-      verifySuccessfulPoisonNullByteExploit(file)
+      const normalizedFile = path.normalize(file).replace(/^(\.\.(\/|\\|$))+/, '')
+      
+      const resolvedPath = path.resolve('ftp/', normalizedFile)
+      const ftpPath = path.resolve('ftp/')
+      
+      if (!resolvedPath.startsWith(ftpPath)) {
+        res.status(403)
+        return next(new Error('Path traversal attack detected!'))
+      }
 
-      res.sendFile(path.resolve('ftp/', file))
+      challengeUtils.solveIf(challenges.directoryListingChallenge, () => { return normalizedFile.toLowerCase() === 'acquisitions.md' })
+      verifySuccessfulPoisonNullByteExploit(normalizedFile)
+
+      res.sendFile(resolvedPath)
     } else {
       res.status(403)
       next(new Error('Only .md and .pdf files are allowed!'))
