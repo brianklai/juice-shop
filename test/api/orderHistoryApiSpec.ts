@@ -6,7 +6,7 @@
 import * as frisby from 'frisby'
 import { expect } from '@jest/globals'
 import config from 'config'
-import { adminCredentials, jimCredentials, accountantCredentials } from '../helpers/testCredentials'
+import { getTestCredentials } from '../helpers/testCredentials'
 
 const jsonHeader = { 'content-type': 'application/json' }
 const REST_URL = 'http://localhost:3000/rest'
@@ -15,7 +15,7 @@ describe('/rest/order-history', () => {
   it('GET own previous orders', () => {
     return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: adminCredentials
+      body: getTestCredentials('admin')
     })
       .expect('status', 200)
       .then(({ json: jsonLogin }) => {
@@ -49,7 +49,7 @@ describe('/rest/order-history/orders', () => {
   it('GET all orders is forbidden for customers', () => {
     return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: jimCredentials
+      body: getTestCredentials('jim')
     })
       .expect('status', 200)
       .then(({ json: jsonLogin }) => {
@@ -63,7 +63,7 @@ describe('/rest/order-history/orders', () => {
   it('GET all orders is forbidden for admin', () => {
     return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: adminCredentials
+      body: getTestCredentials('admin')
     })
       .expect('status', 200)
       .then(({ json: jsonLogin }) => {
@@ -77,7 +77,7 @@ describe('/rest/order-history/orders', () => {
   it('GET all orders for accountant', () => {
     return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: accountantCredentials
+      body: getTestCredentials('accountant')
     })
       .expect('status', 200)
       .then(({ json: jsonLogin }) => {
@@ -93,7 +93,7 @@ describe('/rest/order-history/:id/delivery-status', () => {
   it('PUT delivery status is forbidden for admin', () => {
     return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: adminCredentials
+      body: getTestCredentials('admin')
     })
       .expect('status', 200)
       .then(({ json: jsonLogin }) => {
@@ -110,7 +110,7 @@ describe('/rest/order-history/:id/delivery-status', () => {
   it('PUT delivery status is forbidden for customer', () => {
     return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: jimCredentials
+      body: getTestCredentials('jim')
     })
       .expect('status', 200)
       .then(({ json: jsonLogin }) => {
@@ -127,7 +127,7 @@ describe('/rest/order-history/:id/delivery-status', () => {
   it('PUT delivery status is allowed for accountant', () => {
     return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: accountantCredentials
+      body: getTestCredentials('accountant')
     })
       .expect('status', 200)
       .then(({ json: jsonLogin }) => {

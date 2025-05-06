@@ -69,33 +69,38 @@ export const generateForgedToken = (email: string): string => {
 }
 
 /**
- * Test user credentials for admin user
+ * Get test user credentials from environment variables or default configuration
+ * @param userType Type of user to get credentials for
+ * @returns User credentials object with email and password
  */
-export const adminCredentials = {
-  email: 'admin@' + config.get<string>('application.domain'),
-  password: 'admin123'
-}
-
-/**
- * Test user credentials for jim user
- */
-export const jimCredentials = {
-  email: 'jim@' + config.get<string>('application.domain'),
-  password: 'ncc-1701'
-}
-
-/**
- * Test user credentials for accountant user
- */
-export const accountantCredentials = {
-  email: 'accountant@' + config.get<string>('application.domain'),
-  password: 'i am an awesome accountant'
-}
-
-/**
- * Test user credentials for Bjoern Kimminich user
- */
-export const bjoernCredentials = {
-  email: 'bjoern.kimminich@gmail.com',
-  password: 'bW9jLmxpYW1nQGhjaW5pbW1pay5ucmVvamI='
+export const getTestCredentials = (userType: string): { email: string, password: string } => {
+  const domain = config.get<string>('application.domain')
+  
+  switch (userType) {
+    case 'admin':
+      return {
+        email: process.env.TEST_ADMIN_EMAIL || `admin@${domain}`,
+        password: process.env.TEST_ADMIN_PASSWORD || 'test-password'
+      }
+    case 'jim':
+      return {
+        email: process.env.TEST_JIM_EMAIL || `jim@${domain}`,
+        password: process.env.TEST_JIM_PASSWORD || 'test-password'
+      }
+    case 'accountant':
+      return {
+        email: process.env.TEST_ACCOUNTANT_EMAIL || `accountant@${domain}`,
+        password: process.env.TEST_ACCOUNTANT_PASSWORD || 'test-password'
+      }
+    case 'bjoern':
+      return {
+        email: process.env.TEST_BJOERN_EMAIL || 'bjoern.kimminich@gmail.com',
+        password: process.env.TEST_BJOERN_PASSWORD || 'test-password'
+      }
+    default:
+      return {
+        email: `${userType}@${domain}`,
+        password: 'test-password'
+      }
+  }
 }

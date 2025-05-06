@@ -10,7 +10,7 @@ import config from 'config'
 
 import { type Product } from '../../data/types'
 import * as security from '../../lib/insecurity'
-import { bjoernCredentials } from '../helpers/testCredentials'
+import { getTestCredentials } from '../helpers/testCredentials'
 const Joi = frisby.Joi
 
 const REST_URL = 'http://localhost:3000/rest'
@@ -108,7 +108,7 @@ describe('/rest/products/reviews', () => {
   it('POST non-existing product review cannot be liked', () => {
     return frisby.post(`${REST_URL}/user/login`, {
       headers: jsonHeader,
-      body: bjoernCredentials
+      body: getTestCredentials('bjoern')
     })
       .expect('status', 200)
       .then(({ json: jsonLogin }) => {
@@ -125,7 +125,7 @@ describe('/rest/products/reviews', () => {
   it('POST single product review can be liked', () => {
     return frisby.post(`${REST_URL}/user/login`, {
       headers: jsonHeader,
-      body: bjoernCredentials
+      body: getTestCredentials('bjoern')
     })
       .expect('status', 200)
       .then(({ json: jsonLogin }) => {
