@@ -19,32 +19,74 @@ const entities = new Entities()
 
 export const getVideo = () => {
   return (req: Request, res: Response) => {
-    const path = videoPath()
-    const stat = fs.statSync(path)
-    const fileSize = stat.size
-    const range = req.headers.range
-    if (range) {
-      const parts = range.replace(/bytes=/, '').split('-')
-      const start = parseInt(parts[0], 10)
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1
-      const chunksize = (end - start) + 1
-      const file = fs.createReadStream(path, { start, end })
-      const head = {
-        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-        'Accept-Ranges': 'bytes',
-        'Content-Length': chunksize,
-        'Content-Location': '/assets/public/videos/owasp_promo.mp4',
-        'Content-Type': 'video/mp4'
+    try {
+      const videoFilePath = videoPath()
+      
+      try {
+        const stat = fs.statSync(videoFilePath)
+        const fileSize = stat.size
+        const range = req.headers.range
+        
+        if (range) {
+          try {
+            const parts = range.replace(/bytes=/, '').split('-')
+            const start = parseInt(parts[0], 10)
+            const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1
+            const chunksize = (end - start) + 1
+            
+            if (isNaN(start) || isNaN(end) || start < 0 || end >= fileSize || start > end) {
+              res.status(416).send('Range Not Satisfiable')
+              return
+            }
+            
+            const file = fs.createReadStream(videoFilePath, { start, end })
+            const head = {
+              'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+              'Accept-Ranges': 'bytes',
+              'Content-Length': chunksize,
+              'Content-Location': '/assets/public/videos/owasp_promo.mp4',
+              'Content-Type': 'video/mp4'
+            }
+            
+            res.writeHead(206, head)
+            
+            file.on('error', (error) => {
+              console.error('Error streaming video file:', error)
+              if (!res.headersSent) {
+                res.status(500).send('Error streaming video')
+              }
+            })
+            
+            file.pipe(res)
+          } catch (rangeError) {
+            console.error('Error processing range request:', rangeError)
+            res.status(416).send('Range Not Satisfiable')
+          }
+        } else {
+          const head = {
+            'Content-Length': fileSize,
+            'Content-Type': 'video/mp4'
+          }
+          
+          res.writeHead(200, head)
+          
+          const stream = fs.createReadStream(videoFilePath)
+          stream.on('error', (error) => {
+            console.error('Error streaming video file:', error)
+            if (!res.headersSent) {
+              res.status(500).send('Error streaming video')
+            }
+          })
+          
+          stream.pipe(res)
+        }
+      } catch (statError) {
+        console.error('Error accessing video file:', statError)
+        res.status(404).send('Video file not found')
       }
-      res.writeHead(206, head)
-      file.pipe(res)
-    } else {
-      const head = {
-        'Content-Length': fileSize,
-        'Content-Type': 'video/mp4'
-      }
-      res.writeHead(200, head)
-      fs.createReadStream(path).pipe(res)
+    } catch (error) {
+      console.error('Error in video handler:', error)
+      res.status(500).send('Error processing video request')
     }
   }
 }
