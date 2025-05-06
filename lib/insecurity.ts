@@ -40,8 +40,11 @@ interface IAuthenticatedUsers {
   updateFrom: (req: Request, user: ResponseWithUser) => any
 }
 
-export const hash = (data: string) => crypto.createHash('md5').update(data).digest('hex')
-export const hmac = (data: string) => crypto.createHmac('sha256', 'pa4qacea4VK9t9nGv7yZtwmj').update(data).digest('hex')
+export const hash = (data: string) => crypto.createHash('sha256').update(data).digest('hex')
+export const hmac = (data: string) => {
+  const key = process.env.HMAC_KEY || 'pa4qacea4VK9t9nGv7yZtwmj' // Allow key to be configured via environment variable
+  return crypto.createHmac('sha256', key).update(data).digest('hex')
+}
 
 export const cutOffPoisonNullByte = (str: string) => {
   const nullByte = '%00'
@@ -133,11 +136,23 @@ export const redirectAllowlist = new Set([
 ])
 
 export const isRedirectAllowed = (url: string) => {
-  let allowed = false
-  for (const allowedUrl of redirectAllowlist) {
-    allowed = allowed || url.includes(allowedUrl) // vuln-code-snippet vuln-line redirectChallenge
+  if (!url || typeof url !== 'string') {
+    return false
   }
-  return allowed
+  
+  try {
+    const urlObj = new URL(url)
+    
+    for (const allowedUrl of redirectAllowlist) {
+      // This is still vulnerable by design for the redirectChallenge
+      if (url.includes(allowedUrl)) { // vuln-code-snippet vuln-line redirectChallenge
+        return true
+      }
+    }
+    return false
+  } catch (err) {
+    return false
+  }
 }
 // vuln-code-snippet end redirectCryptoCurrencyChallenge redirectChallenge
 
@@ -149,7 +164,8 @@ export const roles = {
 }
 
 export const deluxeToken = (email: string) => {
-  const hmac = crypto.createHmac('sha256', privateKey)
+  const key = process.env.DELUXE_TOKEN_KEY || privateKey
+  const hmac = crypto.createHmac('sha256', key)
   return hmac.update(email + roles.deluxe).digest('hex')
 }
 
