@@ -23,8 +23,24 @@ function writeToFile (json: CacheData) {
 }
 
 function getDataFromFile () {
-  const data = fs.readFileSync(cacheFile).toString()
-  return JSON.parse(data)
+  try {
+    const data = fs.readFileSync(cacheFile).toString()
+    if (!data || typeof data !== 'string' || data.length > 1000000) {
+      console.error('Invalid cache data format or size')
+      return {}
+    }
+    
+    const parsedData = JSON.parse(data)
+    if (!parsedData || typeof parsedData !== 'object' || parsedData === null) {
+      console.error('Invalid cache data structure')
+      return {}
+    }
+    
+    return parsedData
+  } catch (err) {
+    console.error('Error parsing cache data:', err)
+    return {}
+  }
 }
 
 function filterString (text: string) {

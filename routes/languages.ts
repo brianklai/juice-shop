@@ -17,7 +17,21 @@ export function getLanguageList () { // TODO Refactor and extend to also load ba
       if (err != null) {
         next(new Error(`Unable to retrieve en.json language file: ${err.message}`))
       }
-      enContent = JSON.parse(content)
+      
+      try {
+        if (!content || typeof content !== 'string' || content.length > 1000000) {
+          return next(new Error('Invalid en.json language file format or size'))
+        }
+        enContent = JSON.parse(content)
+        
+        if (!enContent || typeof enContent !== 'object' || enContent === null) {
+          return next(new Error('Invalid en.json language file structure'))
+        }
+      } catch (parseErr: unknown) {
+        const errorMessage = parseErr instanceof Error ? parseErr.message : 'Unknown error'
+        return next(new Error(`Error parsing en.json language file: ${errorMessage}`))
+      }
+      
       fs.readdir('frontend/dist/frontend/assets/i18n/', (err, languageFiles) => {
         if (err != null) {
           next(new Error(`Unable to read i18n directory: ${err.message}`))
@@ -28,26 +42,39 @@ export function getLanguageList () { // TODO Refactor and extend to also load ba
             if (err != null) {
               next(new Error(`Unable to retrieve ${fileName} language file: ${err.message}`))
             }
-            const fileContent = JSON.parse(content)
-            const percentage = await calcPercentage(fileContent, enContent)
-            const key = fileName.substring(0, fileName.indexOf('.'))
-            const locale = locales.find((l) => l.key === key)
-            const lang: any = {
-              key,
-              lang: fileContent.LANGUAGE,
-              icons: locale?.icons,
-              shortKey: locale?.shortKey,
-              percentage,
-              gauge: (percentage > 90 ? 'full' : (percentage > 70 ? 'three-quarters' : (percentage > 50 ? 'half' : (percentage > 30 ? 'quarter' : 'empty'))))
-            }
-            if (!(fileName === 'en.json' || fileName === 'tlh_AA.json')) {
-              languages.push(lang)
-            }
-            count++
-            if (count === languageFiles.length) {
-              languages.push({ key: 'en', icons: ['gb', 'us'], shortKey: 'EN', lang: 'English', percentage: 100, gauge: 'full' })
-              languages.sort((a, b) => a.lang.localeCompare(b.lang))
-              res.status(200).json(languages)
+            
+            try {
+              if (!content || typeof content !== 'string' || content.length > 1000000) {
+                return next(new Error(`Invalid ${fileName} language file format or size`))
+              }
+              const fileContent = JSON.parse(content)
+              
+              if (!fileContent || typeof fileContent !== 'object' || fileContent === null) {
+                return next(new Error(`Invalid ${fileName} language file structure`))
+              }
+              const percentage = await calcPercentage(fileContent, enContent)
+              const key = fileName.substring(0, fileName.indexOf('.'))
+              const locale = locales.find((l) => l.key === key)
+              const lang: any = {
+                key,
+                lang: fileContent.LANGUAGE,
+                icons: locale?.icons,
+                shortKey: locale?.shortKey,
+                percentage,
+                gauge: (percentage > 90 ? 'full' : (percentage > 70 ? 'three-quarters' : (percentage > 50 ? 'half' : (percentage > 30 ? 'quarter' : 'empty'))))
+              }
+              if (!(fileName === 'en.json' || fileName === 'tlh_AA.json')) {
+                languages.push(lang)
+              }
+              count++
+              if (count === languageFiles.length) {
+                languages.push({ key: 'en', icons: ['gb', 'us'], shortKey: 'EN', lang: 'English', percentage: 100, gauge: 'full' })
+                languages.sort((a, b) => a.lang.localeCompare(b.lang))
+                res.status(200).json(languages)
+              }
+            } catch (parseErr: unknown) {
+              const errorMessage = parseErr instanceof Error ? parseErr.message : 'Unknown error'
+              next(new Error(`Error parsing ${fileName} language file: ${errorMessage}`))
             }
           })
         })

@@ -50,30 +50,42 @@ export class LocalBackupService {
 
   restore (backupFile: File) {
     return from(backupFile.text().then((backupData) => {
-      const backup: Backup = JSON.parse(backupData)
+      if (!backupData || typeof backupData !== 'string' || backupData.length > 10000) {
+        throw new Error('Invalid backup data format or size')
+      }
+      
+      try {
+        const backup: Backup = JSON.parse(backupData)
+        
+        if (!backup || typeof backup !== 'object' || backup === null) {
+          throw new Error('Invalid backup format')
+        }
+        
+        if (backup.version === this.VERSION) {
+          this.restoreCookie('welcomebanner_status', backup.banners?.welcomeBannerStatus)
+          this.restoreCookie('cookieconsent_status', backup.banners?.cookieConsentStatus)
+          this.restoreCookie('language', backup.language)
+          this.restoreCookie('continueCodeFindIt', backup.continueCodeFindIt)
+          this.restoreCookie('continueCodeFixIt', backup.continueCodeFixIt)
+          this.restoreCookie('continueCode', backup.continueCode)
 
-      if (backup.version === this.VERSION) {
-        this.restoreCookie('welcomebanner_status', backup.banners?.welcomeBannerStatus)
-        this.restoreCookie('cookieconsent_status', backup.banners?.cookieConsentStatus)
-        this.restoreCookie('language', backup.language)
-        this.restoreCookie('continueCodeFindIt', backup.continueCodeFindIt)
-        this.restoreCookie('continueCodeFixIt', backup.continueCodeFixIt)
-        this.restoreCookie('continueCode', backup.continueCode)
-
-        const snackBarRef = this.snackBar.open('Backup has been restored from ' + backupFile.name, 'Apply changes now', {
-          duration: 10000,
-          panelClass: ['mat-body']
-        })
-        snackBarRef.onAction().subscribe(() => {
-          const hackingProgress = backup.continueCode ? this.challengeService.restoreProgress(encodeURIComponent(backup.continueCode)) : of(true)
-          const findItProgress = backup.continueCodeFindIt ? this.challengeService.restoreProgressFindIt(encodeURIComponent(backup.continueCodeFindIt)) : of(true)
-          const fixItProgress = backup.continueCodeFixIt ? this.challengeService.restoreProgressFixIt(encodeURIComponent(backup.continueCodeFixIt)) : of(true)
-          forkJoin([hackingProgress, findItProgress, fixItProgress]).subscribe(() => {
-            location.reload()
-          }, (err) => { console.log(err) })
-        })
-      } else {
-        this.snackBarHelperService.open(`Version ${backup.version} is incompatible with expected version ${this.VERSION}`, 'errorBar')
+          const snackBarRef = this.snackBar.open('Backup has been restored from ' + backupFile.name, 'Apply changes now', {
+            duration: 10000,
+            panelClass: ['mat-body']
+          })
+          snackBarRef.onAction().subscribe(() => {
+            const hackingProgress = backup.continueCode ? this.challengeService.restoreProgress(encodeURIComponent(backup.continueCode)) : of(true)
+            const findItProgress = backup.continueCodeFindIt ? this.challengeService.restoreProgressFindIt(encodeURIComponent(backup.continueCodeFindIt)) : of(true)
+            const fixItProgress = backup.continueCodeFixIt ? this.challengeService.restoreProgressFixIt(encodeURIComponent(backup.continueCodeFixIt)) : of(true)
+            forkJoin([hackingProgress, findItProgress, fixItProgress]).subscribe(() => {
+              location.reload()
+            }, (err) => { console.log(err) })
+          })
+        } else {
+          this.snackBarHelperService.open(`Version ${backup.version} is incompatible with expected version ${this.VERSION}`, 'errorBar')
+        }
+      } catch (err) {
+        this.snackBarHelperService.open(`Invalid backup format: ${err.message}`, 'errorBar')
       }
     }).catch((err: Error) => {
       this.snackBarHelperService.open(`Backup restore operation failed: ${err.message}`, 'errorBar')

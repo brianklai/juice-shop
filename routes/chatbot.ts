@@ -38,10 +38,27 @@ export async function initializeChatbot () {
 
   trainingFile = utils.extractFilename(trainingFile)
   const trainingSet = await fs.readFile(`data/chatbot/${trainingFile}`, 'utf8')
-  validateChatBot(JSON.parse(trainingSet))
-
-  testCommand = JSON.parse(trainingSet).data[0].utterances[0]
-  bot = new Bot(config.get('application.chatBot.name'), config.get('application.chatBot.greeting'), trainingSet, config.get('application.chatBot.defaultResponse'))
+  
+  if (!trainingSet || typeof trainingSet !== 'string' || trainingSet.length > 1000000) {
+    throw new Error('Invalid training data format or size')
+  }
+  
+  try {
+    const parsedTrainingSet = JSON.parse(trainingSet)
+    validateChatBot(parsedTrainingSet)
+    
+    if (!parsedTrainingSet.data || !Array.isArray(parsedTrainingSet.data) || 
+        !parsedTrainingSet.data[0] || !parsedTrainingSet.data[0].utterances || 
+        !Array.isArray(parsedTrainingSet.data[0].utterances)) {
+      throw new Error('Invalid training data structure')
+    }
+    
+    testCommand = parsedTrainingSet.data[0].utterances[0]
+    bot = new Bot(config.get('application.chatBot.name'), config.get('application.chatBot.greeting'), trainingSet, config.get('application.chatBot.defaultResponse'))
+  } catch (err) {
+    logger.error(`Error parsing chatbot training data: ${utils.getErrorMessage(err)}`)
+    throw err
+  }
   return bot.train()
 }
 
