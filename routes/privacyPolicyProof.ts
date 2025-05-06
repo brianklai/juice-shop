@@ -10,7 +10,21 @@ import * as challengeUtils from '../lib/challengeUtils'
 
 export function servePrivacyPolicyProof () {
   return (req: Request, res: Response) => {
-    challengeUtils.solveIf(challenges.privacyPolicyProofChallenge, () => { return true })
-    res.sendFile(path.resolve('frontend/dist/frontend/assets/private/thank-you.jpg'))
+    try {
+      challengeUtils.solveIf(challenges.privacyPolicyProofChallenge, () => { return true })
+      
+      const baseDir = path.resolve('frontend/dist/frontend/assets/private')
+      const filePath = path.resolve(baseDir, 'thank-you.jpg')
+      
+      if (!filePath.startsWith(baseDir)) {
+        console.error('Security check failed: Path would be outside target directory')
+        return res.status(403).send('Forbidden')
+      }
+      
+      res.sendFile(filePath)
+    } catch (error) {
+      console.error('Error serving privacy policy proof:', error)
+      res.status(500).send('Error serving content')
+    }
   }
 }
