@@ -47,13 +47,19 @@ export const hash = (data: any) => {
   
   const dataStr = typeof data === 'string' ? data : String(data)
   
-  if (!dataStr.includes('$')) {
+  if (dataStr.startsWith('pbkdf2$')) {
+    return dataStr
+  }
+  
+  if (dataStr.includes('$') && !dataStr.startsWith('pbkdf2$')) {
     const salt = crypto.randomBytes(16).toString('hex')
     const derivedKey = crypto.pbkdf2Sync(dataStr, salt, 10000, 32, 'sha256').toString('hex')
     return `pbkdf2$10000$${salt}$${derivedKey}`
-  } else {
-    return crypto.createHash('sha256').update(dataStr).digest('hex')
   }
+  
+  const salt = crypto.randomBytes(16).toString('hex')
+  const derivedKey = crypto.pbkdf2Sync(dataStr, salt, 10000, 32, 'sha256').toString('hex')
+  return `pbkdf2$10000$${salt}$${derivedKey}`
 }
 
 export const hmac = (data: string) => {
