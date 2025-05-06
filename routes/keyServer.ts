@@ -9,12 +9,16 @@ import { type Request, type Response, type NextFunction } from 'express'
 export function serveKeyFiles () {
   return ({ params }: Request, res: Response, next: NextFunction) => {
     const file = params.file
-
-    if (!file.includes('/')) {
-      res.sendFile(path.resolve('encryptionkeys/', file))
+    
+    const safeFile = file.replace(/[^a-zA-Z0-9._-]/g, '')
+    const filePath = path.resolve('encryptionkeys', safeFile)
+    const baseDir = path.resolve('encryptionkeys')
+    
+    if (filePath.startsWith(baseDir)) {
+      res.sendFile(filePath)
     } else {
       res.status(403)
-      next(new Error('File names cannot contain forward slashes!'))
+      next(new Error('File access denied due to path traversal attempt!'))
     }
   }
 }
