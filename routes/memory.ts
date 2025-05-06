@@ -4,18 +4,29 @@
  */
 
 import { type Request, type Response, type NextFunction } from 'express'
+import path from 'node:path'
 import { MemoryModel } from '../models/memory'
 import { UserModel } from '../models/user'
 
 export function addMemory () {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const record = {
-      caption: req.body.caption,
-      imagePath: 'assets/public/images/uploads/' + req.file?.filename,
-      UserId: req.body.UserId
+    try {
+      const safeFilename = req.file?.filename ? req.file.filename.replace(/[^a-zA-Z0-9._-]/g, '') : '';
+      
+      const baseDir = 'assets/public/images/uploads';
+      const imagePath = path.join(baseDir, safeFilename);
+      
+      const record = {
+        caption: req.body.caption,
+        imagePath: imagePath,
+        UserId: req.body.UserId
+      }
+      
+      const memory = await MemoryModel.create(record)
+      res.status(200).json({ status: 'success', data: memory })
+    } catch (error) {
+      next(error)
     }
-    const memory = await MemoryModel.create(record)
-    res.status(200).json({ status: 'success', data: memory })
   }
 }
 
