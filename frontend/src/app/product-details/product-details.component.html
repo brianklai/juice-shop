@@ -13,7 +13,8 @@
 
       <div>
         <h1>{{data.productData.name}}</h1>
-        <div [innerHTML]="data.productData.description"></div>
+        <!-- Use Angular's DomSanitizer to prevent XSS -->
+        <div [innerHTML]="sanitizedDescription"></div>
         <br/>
         <div>
           <p class="item-price">{{data.productData.price}}&curren;</p>
