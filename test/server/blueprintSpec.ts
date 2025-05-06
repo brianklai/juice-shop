@@ -36,7 +36,15 @@ describe('blueprint', () => {
       for (const product of products) {
         if (product.fileForRetrieveBlueprintChallenge && product.image) {
           if (utils.isUrl(product.image)) {
-            pathToImage = path.resolve('frontend/dist/frontend', pathToImage, product.image.substring(product.image.lastIndexOf('/') + 1))
+            const extractedName = product.image.substring(product.image.lastIndexOf('/') + 1)
+            const safeFilename = extractedName.replace(/[^a-zA-Z0-9._-]/g, '')
+            const baseDir = path.resolve('frontend/dist/frontend', pathToImage)
+            pathToImage = path.resolve(baseDir, safeFilename)
+            
+            if (!pathToImage.startsWith(baseDir)) {
+              expect.fail(`Invalid image path detected: ${pathToImage}`)
+              return
+            }
             const response = await fetch(product.image)
             if (!response.ok || !response.body) {
               expect.fail(`Could not download image from ${product.image}`)
