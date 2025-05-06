@@ -819,11 +819,46 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   app.post('/profile', updateUserProfile())
 
   /* Route for vulnerable code snippets */
-  app.get('/snippets', serveChallengesWithCodeSnippet())
-  app.get('/snippets/:challenge', serveCodeSnippet())
-  app.post('/snippets/verdict', checkVulnLines())
-  app.get('/snippets/fixes/:key', serveCodeFixes())
-  app.post('/snippets/fixes', checkCorrectFix())
+  app.get('/snippets',
+    rateLimit({
+      windowMs: 5 * 60 * 1000,
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false
+    }),
+    serveChallengesWithCodeSnippet())
+  app.get('/snippets/:challenge',
+    rateLimit({
+      windowMs: 5 * 60 * 1000,
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false
+    }),
+    serveCodeSnippet())
+  app.post('/snippets/verdict',
+    rateLimit({
+      windowMs: 5 * 60 * 1000,
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false
+    }),
+    checkVulnLines())
+  app.get('/snippets/fixes/:key',
+    rateLimit({
+      windowMs: 5 * 60 * 1000,
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false
+    }),
+    serveCodeFixes())
+  app.post('/snippets/fixes',
+    rateLimit({
+      windowMs: 5 * 60 * 1000,
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false
+    }),
+    checkCorrectFix())
 
   app.use(serveAngularClient())
 
