@@ -51,30 +51,58 @@ export const getVideo = () => {
 
 export const promotionVideo = () => {
   return (req: Request, res: Response) => {
-    fs.readFile('views/promotionVideo.pug', function (err, buf) {
-      if (err != null) throw err
-      let template = buf.toString()
-      const subs = getSubsFromFile()
+    try {
+      const templatePath = path.resolve('views/promotionVideo.pug')
+      fs.readFile(templatePath, function (err, buf) {
+        try {
+          if (err != null) {
+            console.error('Error reading template file:', err)
+            res.status(500).send('Error loading video page')
+            return
+          }
+          
+          let template = buf.toString()
+          const subs = getSubsFromFile()
 
-      challengeUtils.solveIf(challenges.videoXssChallenge, () => { return utils.contains(subs, '</script><script>alert(`xss`)</script>') })
+          challengeUtils.solveIf(challenges.videoXssChallenge, () => { return utils.contains(subs, '</script><script>alert(`xss`)</script>') })
 
-      const themeKey = config.get<string>('application.theme') as keyof typeof themes
-      const theme = themes[themeKey] || themes['bluegrey-lightgreen']
-      template = template.replace(/_title_/g, entities.encode(config.get<string>('application.name')))
-      template = template.replace(/_favicon_/g, favicon())
-      template = template.replace(/_bgColor_/g, theme.bgColor)
-      template = template.replace(/_textColor_/g, theme.textColor)
-      template = template.replace(/_navColor_/g, theme.navColor)
-      template = template.replace(/_primLight_/g, theme.primLight)
-      template = template.replace(/_primDark_/g, theme.primDark)
-      const fn = pug.compile(template)
-      let compiledTemplate = fn()
-      compiledTemplate = compiledTemplate.replace('<script id="subtitle"></script>', '<script id="subtitle" type="text/vtt" data-label="English" data-lang="en">' + subs + '</script>')
-      res.send(compiledTemplate)
-    })
+          const themeKey = config.get<string>('application.theme') as keyof typeof themes
+          const theme = themes[themeKey] || themes['bluegrey-lightgreen']
+          template = template.replace(/_title_/g, entities.encode(config.get<string>('application.name')))
+          template = template.replace(/_favicon_/g, favicon())
+          template = template.replace(/_bgColor_/g, theme.bgColor)
+          template = template.replace(/_textColor_/g, theme.textColor)
+          template = template.replace(/_navColor_/g, theme.navColor)
+          template = template.replace(/_primLight_/g, theme.primLight)
+          template = template.replace(/_primDark_/g, theme.primDark)
+          
+          try {
+            const fn = pug.compile(template)
+            let compiledTemplate = fn()
+            compiledTemplate = compiledTemplate.replace('<script id="subtitle"></script>', '<script id="subtitle" type="text/vtt" data-label="English" data-lang="en">' + subs + '</script>')
+            res.send(compiledTemplate)
+          } catch (compileError) {
+            console.error('Error compiling template:', compileError)
+            res.status(500).send('Error processing video page')
+          }
+        } catch (innerError) {
+          console.error('Error in template processing:', innerError)
+          res.status(500).send('Error processing video page')
+        }
+      })
+    } catch (outerError) {
+      console.error('Error in promotion video handler:', outerError)
+      res.status(500).send('Error loading video page')
+    }
   }
+  
   function favicon () {
-    return utils.extractFilename(config.get('application.favicon'))
+    try {
+      return utils.extractFilename(config.get('application.favicon'))
+    } catch (error) {
+      console.error('Error extracting favicon:', error)
+      return 'favicon.ico'
+    }
   }
 }
 
