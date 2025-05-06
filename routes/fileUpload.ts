@@ -29,10 +29,10 @@ function handleZipFileUpload ({ file }: Request, res: Response, next: NextFuncti
     if (utils.endsWith(file?.originalname.toLowerCase(), '.zip')) {
       if (((file?.buffer) != null) && utils.isChallengeEnabled(challenges.fileWriteChallenge)) {
         const buffer = file.buffer
-        const filename = file.originalname.toLowerCase()
+        const originalFilename = file.originalname.toLowerCase()
         
-        const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '')
-        const tempFile = path.join(os.tmpdir(), safeFilename)
+        const randomFilename = `zip_${Date.now()}_${Math.floor(Math.random() * 10000)}.zip`
+        const tempFile = path.join(os.tmpdir(), randomFilename)
         
         fs.open(tempFile, 'w', function (err, fd) {
           try {
