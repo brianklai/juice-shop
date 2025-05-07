@@ -9,7 +9,10 @@
 
 export const environment = {
   production: false,
-  hostServer: 'http://localhost:3000'
+  hostServer: 'http://localhost:3000',
+  clientId: '1005568560502-6hm16lef8oh46hr2d98vf2ohlnj4nfhq.apps.googleusercontent.com',
+  testingUsername: 'testing@juice-sh.op',
+  testingPassword: 'IamUsedForTesting'
 }
 
 /*
