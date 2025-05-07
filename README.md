@@ -235,6 +235,10 @@ The OWASP Juice Shop Project Leaders are:
 For a list of all contributors to the OWASP Juice Shop please visit our
 [HALL_OF_FAME.md](HALL_OF_FAME.md).
 
+## Environment Variables
+
+The application now supports environment variables for sensitive configuration. See [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md) for details.
+
 ## Licensing
 
 [![license](https://img.shields.io/github/license/bkimminich/juice-shop.svg)](LICENSE)

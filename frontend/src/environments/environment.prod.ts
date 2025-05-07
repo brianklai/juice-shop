@@ -5,5 +5,8 @@
 
 export const environment = {
   production: true,
-  hostServer: '.'
+  hostServer: '.',
+  clientId: '',
+  testingUsername: '',
+  testingPassword: ''
 }
