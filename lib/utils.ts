@@ -80,8 +80,18 @@ const getCtfKey = () => {
     if (process.env.CTF_KEY !== undefined && process.env.CTF_KEY !== '') {
       cachedCtfKey = process.env.CTF_KEY
     } else {
-      const data = fs.readFileSync('ctf.key', 'utf8')
-      cachedCtfKey = data
+      try {
+        if (fs.existsSync('ctf.key')) {
+          const data = fs.readFileSync('ctf.key', 'utf8')
+          cachedCtfKey = data
+        } else {
+          logger.warn('CTF key file not found. Using default key for development.')
+          cachedCtfKey = 'OWASP Juice Shop CTF Key'
+        }
+      } catch (error) {
+        logger.error('Error reading CTF key: ' + getErrorMessage(error))
+        cachedCtfKey = 'OWASP Juice Shop CTF Key'
+      }
     }
   }
   return cachedCtfKey
