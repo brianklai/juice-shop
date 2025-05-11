@@ -40,7 +40,11 @@ interface IAuthenticatedUsers {
   updateFrom: (req: Request, user: ResponseWithUser) => any
 }
 
-export const hash = (data: string) => crypto.createHash('sha256').update(data).digest('hex')
+export const hash = (data: string) => {
+  const salt = crypto.randomBytes(16).toString('hex')
+  const hash = crypto.pbkdf2Sync(data, salt, 10000, 64, 'sha512').toString('hex')
+  return `${salt}:${hash}`
+}
 export const hmac = (data: string) => {
   const salt = crypto.randomBytes(16).toString('hex')
   const hash = crypto.pbkdf2Sync(data, salt, 10000, 64, 'sha512').toString('hex')
