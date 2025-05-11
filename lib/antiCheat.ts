@@ -75,7 +75,7 @@ export const calculateCheatScore = (challenge: Challenge) => {
   }
 
   logger.info(`Cheat score for ${areCoupled(challenge, previous().challenge) ? 'coupled ' : (isTrivial(challenge) ? 'trivial ' : '')}${challenge.tutorialOrder ? 'tutorial ' : ''}${colors.cyan(challenge.key)} solved in ${Math.round(minutesSincePreviousSolve)}min (expected ~${minutesExpectedToSolve}min) with${config.get('challenges.showHints') ? '' : 'out'} hints allowed${percentPrecedingInteraction > -1 ? (' and ' + percentPrecedingInteraction * 100 + '% expected preceding URL interaction') : ''}: ${cheatScore < 0.33 ? colors.green(cheatScore.toString()) : (cheatScore < 0.66 ? colors.yellow(cheatScore.toString()) : colors.red(cheatScore.toString()))}`)
-  solves.push({ challenge, phase: 'hack it', timestamp, cheatScore })
+  solves.push({ challenge: { key: challenge.key, difficulty: challenge.difficulty, tutorialOrder: challenge.tutorialOrder }, phase: 'hack it', timestamp, cheatScore })
   return cheatScore
 }
 
