@@ -80,8 +80,14 @@ const getCtfKey = () => {
     if (process.env.CTF_KEY !== undefined && process.env.CTF_KEY !== '') {
       cachedCtfKey = process.env.CTF_KEY
     } else {
-      const data = fs.readFileSync('ctf.key', 'utf8')
-      cachedCtfKey = data
+      try {
+        const data = fs.readFileSync('ctf.key', 'utf8')
+        cachedCtfKey = data
+        logger.warn('Using CTF key from file. Consider setting CTF_KEY environment variable instead.')
+      } catch (err) {
+        logger.warn('Could not read CTF key from file. Using default key.')
+        cachedCtfKey = 'TRwzkRJnHOTckssAeyJbysWgP!Qc2T' // Default key for development only
+      }
     }
   }
   return cachedCtfKey
